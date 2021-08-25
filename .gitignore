@@ -1,0 +1,12 @@
+# Git ignore
+
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+Activity_data_raw/
+Consultation_data/
+DM01/
+Practice_list_demographics/
+CC_patient_population.R
