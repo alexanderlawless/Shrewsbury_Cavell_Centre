@@ -1,5 +1,5 @@
 ---
-title: "Shrewsbury Cavell Centre Analysis - Phase 1"
+title: "Shrewsbury Health and Well-being Hub Analysis - Phase 1"
 author: "Alexander Lawless"
 date: "26/07/2021"
 output:
@@ -40,6 +40,8 @@ library(htmlwidgets)
 library(readxl)
 library(lubridate)
 library(scales)
+library(png)
+
 
 inline_hook <- function(x) {
  
@@ -490,7 +492,7 @@ phe_clinical_indicators <-
   union(phe_fing_gp_resp            ) %>% 
   filter(area_code %in% practices)
 
-## Describe populatiom demographics ####
+## Describe population demographics ####
 # Patient population pyramids
 # Count
 b_practice_pop_pyramid <-
@@ -718,16 +720,153 @@ opa_colated <-
   clean_names() %>% 
   mutate(appointment_date = as.Date(appointment_date, "%d/%m/%Y"))
 
+opa_colated <- 
+  read_csv("Activity_data_raw/OPA_colocated_1620.csv") %>% 
+  clean_names() %>% 
+  mutate(appointment_date = as.Date(appointment_date, "%d/%m/%Y"))
+
 opa_colated_19 <-
   opa_colated %>% 
   filter(substr(appointment_date,1,4) == "2019")
 
-## Community care - ShropCom ####
 
-# ShropCom referrals 
-ShropCom_refs_1819 <- read_csv("Activity_data_raw/ShropCom_refs_1819.csv")
+# Grouping of outpatient appointment in line with previous work (FutureFit)
+#1 Attendances - High volume speciality  (follow-up)
+#2 Attendances - High volume speciality (first attendance - single professional - no scanning)
+#3 Telephone appointment - Low volume speciality
+#4 Outpatient procedure - adult diagnostic appointment with no scanning
+#5 Outpatient procedure - Adult operation/scan in High volume speciality
 
-names(ShropCom_refs_1819) <- 
+procedure_mri <- c("U133", #U133: Magnetic resonance imaging of bone
+                   "U211", #U211: Magnetic resonance imaging NEC
+                   "U012"  #U012: Magnetic resonance imaging of whole body) 
+)
+procedure_ct <- c("U212", #U212: Computed tomography NEC
+                  "U011", #U011: Computed tomography of whole body
+                  "U214"  #U214: Single photon emission computed tomography NEC
+)
+proceudre_uss <- c("U132", #U132: Ultrasound of bone
+                   "U216"  #U216: Ultrasound scan NEC
+)
+procedure_xray <- c("Y981", #Y981: Radiology of one body area (or < 20 minutes)
+                    "U131", #U131: Bone densitometry
+                    "U183"  #U183: Mammography)
+)
+procedure_contrast <- c("Y973") #Y973: Radiology with post contrast
+
+opa_colated <- 
+  read_csv("Activity_data_raw/OPA_colocated_1620.csv") %>% 
+  clean_names() %>% 
+  mutate(appointment_date = as.Date(appointment_date, "%d/%m/%Y")) %>% 
+  mutate(child_adult = 
+           case_when(
+             age_at_start_of_episode_sus < 18 ~ "Child",
+             TRUE ~ "Adult"
+           )) %>% 
+  mutate(high_volume_speciality = 
+           case_when(
+             main_specialty_code %in% c(
+               110, #	Trauma and Orthopaedics
+               300, # General internal medicine
+               130, # Opthamology
+               100, # General surgery
+               314 #  Rehabilitation medicine
+             ) ~ "Yes", 
+             TRUE ~ "No")) %>% 
+  mutate(attendance_type = 
+           case_when(
+             str_detect(sus_hrg, "WF01") ~ "Attendance - Single professional",
+             str_detect(hrg_code, "WF01") ~ "Attendance - Single professional",
+             str_detect(sus_hrg, "WF02") ~ "Attendance - Multi professional",
+             str_detect(hrg_code, "WF02") ~ "Attendance - Multi professional",
+             TRUE ~ "Procedure"
+           )) %>% 
+  mutate(first_or_fu = 
+           case_when(
+             first_attendance %in% c(
+               1,	#First attendance face to face
+               3	#First telephone or Telemedicine consultation
+             ) ~ "First atttendance",
+             first_attendance %in% c(
+               2,	#Follow-up attendance face to face
+               4,	#Follow-up telephone or Telemedicine consultation
+               5	#Referral To Treatment Clock Stop Administrative Event
+             ) ~ "Follow-up"
+           )) %>% 
+  mutate(imaging = 
+           case_when(
+             str_detect(der_procedure_all, paste(procedure_mri, collapse = "|")) ~ "MRI",
+             str_detect(der_procedure_all, paste(procedure_ct, collapse = "|")) ~ "CT",
+             str_detect(der_procedure_all, paste(proceudre_uss, collapse = "|")) ~ "USS",
+             str_detect(der_procedure_all, paste(procedure_xray, collapse = "|")) ~ "Xray",
+             str_detect(der_procedure_all, paste(procedure_contrast, collapse = "|")) ~ "Contrast",
+             TRUE ~ "No imaging"))
+
+opa_colated_19 <-
+  opa_colated %>% 
+  filter(substr(appointment_date,1,4) == "2019")
+
+
+# Grouped OPA data for clinical confirmation
+opa_colated_19_grouped <-         
+  opa_colated_19 %>% 
+  group_by(
+    #child_adult, 
+    #high_volume_speciality, 
+    first_or_fu, 
+    attendance_type, 
+    imaging
+    ) %>% 
+  summarise(n = n_distinct(opa_ident)) %>% 
+  drop_na(first_or_fu) %>% 
+  ungroup() %>% 
+  arrange(first_or_fu, attendance_type, desc(n)) %>% 
+  ungroup()
+
+# OPA Sankey diagram
+library(highcharter)
+opa_sankey <-
+  hchart(
+    data_to_sankey(
+      opa_colated_19 %>%
+        select(first_or_fu, attendance_type, imaging)
+      ), "sankey", 
+       name = "Outpatient demand by appointment groups")
+
+## Community care - ShropCom referrals ####
+# Source of referral look up
+com_ref_souce_desc_lookup <-
+  tribble(
+    ~code, ~ref_souce_desc,
+    "01",	"General Medical Practitioner Practice",
+    "02",	"Self referral",
+    "03",	"Carer/Relative",
+    "04",	"Employer",
+    "05",	"Emergency Care Department",
+    "06",	"Acute Hospital Inpatient/Outpatient Department",
+    "07",	"Community Health Service",
+    "08",	"Dental Practice",
+    "09",	"National Screening Programme",
+    "10",	"Educational Establishment",
+    "11",	"Local Authority Social Services",
+    "12",	"Hospice",
+    "13",	"Care Home",
+    "14",	"Police",
+    "15",	"Courts",
+    "16",	"Probation Service",
+    "17",	"Prison Health Service",
+    "18",	"Asylum Service",
+    "19",	"Telephone or Electronic Access Service",
+    "20",	"Voluntary Sector",
+    "21",	"Independent Sector",
+    "22",	"Ambulance Service",
+    "23",	"Mental Health Service",
+  )
+
+ShropCom_refs_1620 <- 
+  read_csv("Activity_data_raw/ShropCom_refs_1620.csv")
+
+names(ShropCom_refs_1620) <- 
   c('RECORDNUMBER',
     'PatientID',
     'GENDERCODE', 
@@ -737,6 +876,7 @@ names(ShropCom_refs_1819) <-
     'CCGOFRESIDENCE',
     'LSOA2011',
     'AGEATREPORTINGPERIODSTART_DER',
+    'SERVICEREQID',
     'REFERRALREQRECDATE',
     'SOURCEOFREFERRALFORCOMMUNITY',
     'REFERRINGORGCODE',
@@ -750,46 +890,19 @@ names(ShropCom_refs_1819) <-
     'ReasonForReferralToCommunityCareIsLatest',
     'ReasonForReferralToCommunityCareAuditKeyID')
 
-# Source of referral look up
-com_ref_souce_desc_lookup <-
-  tribble(
-    ~code, ~ref_souce_desc,
-    01,	"General Medical Practitioner Practice",
-    02,	"Self referral",
-    03,	"Carer/Relative",
-    04,	"Employer",
-    05,	"Emergency Care Department",
-    06,	"Acute Hospital Inpatient/Outpatient Department",
-    07,	"Community Health Service",
-    08,	"Dental Practice",
-    09,	"National Screening Programme",
-    10,	"Educational Establishment",
-    11,	"Local Authority Social Services",
-    12,	"Hospice",
-    13,	"Care Home",
-    14,	"Police",
-    15,	"Courts",
-    16,	"Probation Service",
-    17,	"Prison Health Service",
-    18,	"Asylum Service",
-    19,	"Telephone or Electronic Access Service",
-    20,	"Voluntary Sector",
-    21,	"Independent Sector",
-    22,	"Ambulance Service",
-    23,	"Mental Health Service",
-    )
-
-ShropCom_refs_1819 <-
-  ShropCom_refs_1819 %>% 
+ShropCom_refs_1620 <-
+  ShropCom_refs_1620 %>% 
   clean_names() %>% 
-  mutate(child_adult = case_when(
-    ageatreportingperiodstart_der <= 18 ~ "Child",
-    TRUE ~ "Adult")) %>% 
+  mutate(child_adult = 
+           case_when(
+             ageatreportingperiodstart_der <= 18 ~ "Child",
+             TRUE ~ "Adult")) %>% 
   left_join(com_ref_souce_desc_lookup, by = c("sourceofreferralforcommunity" = "code")) %>% 
-  mutate(source_ref_type = case_when(
-    sourceofreferralforcommunity %in% c(01) ~ "GP",
-    sourceofreferralforcommunity %in% c(05, 06, 22) ~ "Acute",
-    TRUE ~ "Other")) %>% 
+  mutate(source_ref_type = 
+           case_when(
+             sourceofreferralforcommunity %in% c(01) ~ "GP",
+             sourceofreferralforcommunity %in% c(05, 06, 22) ~ "Acute",
+             TRUE ~ "Other")) %>% 
   mutate(high_volume_reason = 
            case_when(
              reason_for_referral_to_community_care_description_short %in% c(
@@ -800,9 +913,223 @@ ShropCom_refs_1819 <-
                "Diabetes") ~ "High-volume reason",
              TRUE ~ "Low-volume reason"))
 
+ShropCom_refs_1620 %>% 
+  filter(substr(referralreqrecdate,1,4) == "2019") %>% 
+  group_by(reason_for_referral_to_community_care_description_short) %>% 
+  summarise(referrals = n(),
+            individuals = n_distinct(patient_id),
+            ref_per_person = round(n()/n_distinct(patient_id),1),
+            ratio = round(n_distinct(patient_id)/n(),3)) %>% 
+  arrange(desc(referrals)) %>% 
+  rename(reason_for_referral = reason_for_referral_to_community_care_description_short) %>% 
+  filter(reason_for_referral != 'NULL') %>% 
+  head(10)
 
-# ShropCom care contacts
-ShropCom_contacts_1620 <- read_csv("Activity_data_raw/ShropCom_contacts_1620.csv")
+# # A tibble: 10 x 5
+# reason_for_referral           referrals individuals ref_per_person ratio
+# <chr>                             <int>       <int>          <dbl> <dbl>
+# 1 Foot care/problems               106808         925          116.  0.009
+# 2 Reason for referral not known     80345         806           99.7 0.01 
+# 3 Healthy child pathway             22084        1164           19   0.053
+# 4 Musculoskeletal problems          21077           7         3011   0    
+# 5 Haematology/phlebotomy            17781          44          404.  0.002
+# 6 Diabetes                          16351          61          268   0.004
+# 7 Speech and language problems      13755         114          121.  0.008
+# 8 Continence problems               11764          89          132.  0.008
+# 9 Wound care                        11076          21          527.  0.002
+
+# Forcing ShropCom data into "From-to" structure
+ShropCom_flow <-
+# Stage 1 - Age
+  ShropCom_refs_1620 %>% 
+  group_by(child_adult) %>% 
+  summarise(n = n()) %>% 
+  mutate(ID = "A",
+         from = "A) Referrals") %>% 
+  rename(to = child_adult) %>% 
+  mutate(to = paste("B)", to)) %>% 
+  select(ID, from, to, n) %>% 
+  union(
+    # Stage 2 - Source of referrals
+    ShropCom_refs_1620 %>% 
+      filter(child_adult == "Adult") %>% 
+      group_by(source_ref_type) %>% 
+      summarise(n = n()) %>% 
+      mutate(ID = "B",
+             from = "B) Adult") %>% 
+      rename(to = source_ref_type) %>%
+      mutate(to = paste("C)", to)) %>% 
+      select(ID, from, to, n)) %>% 
+  union(
+    ShropCom_refs_1620 %>% 
+      filter(child_adult == "Child") %>% 
+      group_by(source_ref_type) %>% 
+      summarise(n = n()) %>% 
+      mutate(ID = "C",
+             from = "B) Child") %>% 
+      rename(to = source_ref_type) %>% 
+      mutate(to = paste("D)", to)) %>% 
+      select(ID, from, to, n)) %>% 
+  # Stage 3 - Reason for referral (high or low volume)
+  union(
+    ShropCom_refs_1620 %>% 
+      filter(child_adult == "Adult",
+             source_ref_type == "GP") %>% 
+      group_by(high_volume_reason) %>% 
+      summarise(n = n()) %>% 
+      mutate(ID = "D",
+             from = "C) GP") %>% 
+      rename(to = high_volume_reason) %>%
+      mutate(to = paste("E)", to)) %>% 
+      select(ID, from, to, n)) %>% 
+  union(
+    ShropCom_refs_1620 %>% 
+      filter(child_adult == "Adult",
+             source_ref_type == "Acute") %>% 
+      group_by(high_volume_reason) %>% 
+      summarise(n = n()) %>% 
+      mutate(ID = "E",
+             from = "C) Acute") %>% 
+      rename(to = high_volume_reason) %>% 
+      mutate(to = paste("F)", to)) %>% 
+      select(ID, from, to, n)) %>% 
+  union( 
+    ShropCom_refs_1620 %>% 
+      filter(child_adult == "Adult",
+             source_ref_type == "Other") %>% 
+      group_by(high_volume_reason) %>% 
+      summarise(n = n()) %>% 
+      mutate(ID = "F",
+             from = "C) Other") %>% 
+      rename(to = high_volume_reason) %>% 
+      mutate(to = paste("G)", to)) %>%
+      select(ID, from, to, n)) %>% 
+  union(
+    # Child 
+    ShropCom_refs_1620 %>% 
+      filter(child_adult == "Child",
+             source_ref_type == "GP") %>% 
+      group_by(high_volume_reason) %>% 
+      summarise(n = n()) %>% 
+      mutate(ID = "G",
+             from = "D) GP") %>% 
+      rename(to = high_volume_reason) %>% 
+      mutate(to = paste("H)", to)) %>%
+      select(ID, from, to, n)) %>% 
+  union(
+    ShropCom_refs_1620 %>% 
+      filter(child_adult == "Child",
+             source_ref_type == "Acute") %>% 
+      group_by(high_volume_reason) %>% 
+      summarise(n = n()) %>% 
+      mutate(ID = "H",
+             from = "D) Acute") %>% 
+      rename(to = high_volume_reason) %>% 
+      mutate(to = paste("I)", to)) %>%
+      select(ID, from, to, n)) %>% 
+  union(
+    ShropCom_refs_1620 %>% 
+      filter(child_adult == "Child",
+             source_ref_type == "Other") %>% 
+      group_by(high_volume_reason) %>% 
+      summarise(n = n()) %>% 
+      mutate(ID = "I",
+             from = "D) Other") %>% 
+      rename(to = high_volume_reason) %>% 
+      mutate(to = paste("J)", to)) %>%
+      select(ID, from, to, n)) %>% 
+  select(-ID) %>% 
+  rename(weight = n) %>% 
+  mutate(weight = as.numeric(weight))
+
+# Nodes
+ShropCom_nodes <-
+  data.frame(
+    ShropCom_flow %>% 
+      select(from) %>% 
+      rename(nodes = from) %>%
+      union(
+        ShropCom_flow %>% 
+          select(to) %>% 
+          rename(nodes = to)) %>% 
+      distinct() %>% 
+      rowid_to_column() %>% 
+      mutate(rowid = as.numeric(rowid-1)) %>% 
+      
+      left_join(ShropCom_flow %>% 
+                  mutate(to_value = paste0(to, ": ", weight)) %>% 
+                  select(to, to_value),
+                by = c("nodes" = "to")) %>% #Bring in merged node names (name + value) from 'to' column
+      mutate(to_value = case_when(is.na(to_value)~ paste0(nodes, ": 874301"),
+                                  TRUE ~ to_value))  #All contacts will be NA - manually replace total
+    )
+
+# Links/edges
+ShropCom_links <-
+  data.frame(
+    ShropCom_flow %>% 
+      left_join(ShropCom_nodes, by = c("from" = "nodes")) %>% 
+      rename(source = rowid) %>% 
+      mutate(source = as.numeric(source)) %>% 
+      left_join(ShropCom_nodes, by = c("to" = "nodes")) %>% 
+      rename(target = rowid) %>% 
+      mutate(target = as.numeric(target)) %>% 
+      select(source, target, weight)
+    )
+
+ShropCom_flow_vis <-
+  sankeyNetwork(Links = ShropCom_links, 
+                Nodes = ShropCom_nodes,
+                Source = "source",
+                Target = "target",
+                Value = "weight",
+                NodeID = "to_value",
+                fontFamily = "sans-serif",
+                unit = "Referrals", 
+                fontSize = 15)
+
+## Community care - ShropCom care contacts ####
+# Consultation medium 
+# https://www.datadictionary.nhs.uk/archive/DD%20Release%20December%202019/data_dictionary/attributes/c/cons/consultation_medium_used_de.asp?shownav=1
+consultation_medium_type <-
+  tribble(
+    ~code, ~cons_medium_desc,
+    "01",	"Face to face communication",
+    "02",	"Telephone",
+    "03",	"Telemedicine",
+    "04",	"Talk type for a PERSON unable to speak",
+    "05",	"Email",
+    "06",	"Short Message Service (SMS) - Text Messaging",
+    "07",	"On-line Triage",
+    "98",	"Other (not listed)")
+
+# Community care activity
+# https://datadictionary.nhs.uk/data_elements/community_care_activity_type.html 
+care_activity_type <-
+  tribble(
+    ~code, ~activity_type_desc,
+    "01", "Administering Tests",
+    "02", "Assessment",
+    "03", "CLINICAL INTERVENTION", 
+    "04", "Counselling, Advice, Support",
+    "05", "PATIENT  Specific Health Promotion",
+    "06", "Multidisciplinary Team Review",
+    "07", "Supporting Another Clinician",
+    "08", "Health Visitor  New Birth Visit",
+    "09", "Health Visitor  Health Review (6-8 weeks)",
+    "10", "Health Visitor Health Review (1 year)",
+    "11", "Health Visitor  Health Review (2-2.5 years)",
+    "12", "Health Visitor Formal handover to School Nursing Service (4-5 years)",
+    "97", "Other (not listed)",
+    "98", "Other (Retired 01 September 2015)"
+  )
+
+ActivityLocationTypeCode_lookup <- 
+  read_csv("ActivityLocationTypeCode_lookup.csv") %>% 
+  select(-1, -3)
+
+ShropCom_contacts_1620 <- 
+  read_csv("Activity_data_raw/ShropCom_contacts_1620_location.csv")
 
 names(ShropCom_contacts_1620) <- 
     c(
@@ -815,6 +1142,8 @@ names(ShropCom_contacts_1620) <-
       'CCGOFRESIDENCE',
       'LSOA2011',
       'AGEATREPORTINGPERIODSTART_DER',
+      'SERVICEREQID',
+      'ACTLOCATIONTYPE',
       'CARECONTACTID',
       'CARECONTACTDATE',
       'ADMINCATCODE',
@@ -866,90 +1195,68 @@ names(ShropCom_contacts_1620) <-
 ShropCom_contacts_1620 <-
   ShropCom_contacts_1620 %>% 
   clean_names() %>% 
-  mutate(carecontactdate = as.Date(carecontactdate))
-
-# Consultation medium 
-# https://www.datadictionary.nhs.uk/archive/DD%20Release%20December%202019/data_dictionary/attributes/c/cons/consultation_medium_used_de.asp?shownav=1
-consultation_medium_type <-
-  tribble(
-    ~code, ~cons_medium_desc,
-    "01",	"Face to face communication",
-    "02",	"Telephone",
-    "03",	"Telemedicine",
-    "04",	"Talk type for a PERSON unable to speak",
-    "05",	"Email",
-    "06",	"Short Message Service (SMS) - Text Messaging",
-    "07",	"On-line Triage",
-    "98",	"Other (not listed)")
-
-# Community care activity
-# https://datadictionary.nhs.uk/data_elements/community_care_activity_type.html 
-care_activity_type <-
-  tribble(
-    ~code, ~activity_type_desc,
-    "01", "Administering Tests",
-    "02", "Assessment",
-    "03", "CLINICAL INTERVENTION", 
-    "04", "Counselling, Advice, Support",
-    "05", "PATIENT  Specific Health Promotion",
-    "06", "Multidisciplinary Team Review",
-    "07", "Supporting Another Clinician",
-    "08", "Health Visitor  New Birth Visit",
-    "09", "Health Visitor  Health Review (6-8 weeks)",
-    "10", "Health Visitor Health Review (1 year)",
-    "11", "Health Visitor  Health Review (2-2.5 years)",
-    "12", "Health Visitor Formal handover to School Nursing Service (4-5 years)",
-    "97", "Other (not listed)",
-    "98", "Other (Retired 01 September 2015)"
-    )
-
-ShropCom_contacts_1620 %>% 
-  group_by(substr(carecontactdate,1,4)) %>% 
-  summarise(n = n())
-
-ShropCom_contacts <-
-  ShropCom_contacts_1620 %>%
-  filter(substr(carecontactdate,1,4) == "2019") %>% # Adjust year filter as necessary 
+  mutate(carecontactdate = as.Date(carecontactdate)) %>% 
   select(recordnumber, 
+         patient_id,
          ageatreportingperiodstart_der, 
          carecontactid, 
+         servicereqid,
+         admincatcode,
          carecontactdate,
          consultationtype, 
          conmediumused, 
          careactivityid, 
-         activitytypecode) %>% 
+         activitytypecode,
+         carecontactid, 
+         carecontactdate,
+         actlocationtype
+         ) %>% 
   # Age
-  mutate(child_adult = case_when(ageatreportingperiodstart_der <= 18 ~ "Child",
-                                 TRUE ~ "Adult")) %>% 
+  mutate(child_adult = 
+           case_when(
+             ageatreportingperiodstart_der <= 18 ~ "Child",
+             TRUE ~ "Adult")) %>% 
   # Consultation medium 
   left_join(consultation_medium_type, by = c("conmediumused" = "code")) %>% 
-  mutate(consult_type_group = case_when(conmediumused == "01" ~ "Face-to-face",
-                                        TRUE ~ "Other")) %>% 
+  mutate(consult_type_group = 
+           case_when(
+             conmediumused == "01" ~ "Face-to-face",
+             TRUE ~ "Other")) %>% 
   # Activity type
   left_join(care_activity_type, by = c("activitytypecode" = "code")) %>% 
-  mutate(contact_activity_group = case_when(
-    activity_type_desc %in% c("Administering Tests", "Assessment") ~ "Assessment/Tests",
-    activity_type_desc %in% c("CLINICAL INTERVENTION") ~ "Clinical Intervention",
-    str_detect(activity_type_desc, "Health Visitor") ~ "Health visitor",
-    is.na(activity_type_desc) ~ "Unknown", 
-    TRUE ~ "Other"))  
-  
+  mutate(contact_activity_group = 
+           case_when(
+             activity_type_desc %in% c("Administering Tests", "Assessment") ~ "Assessment/Tests",
+             activity_type_desc %in% c("CLINICAL INTERVENTION") ~ "Clinical Intervention",
+             str_detect(activity_type_desc, "Health Visitor") ~ "Health visitor",
+             is.na(activity_type_desc) ~ "Unknown", 
+             TRUE ~ "Other"))  %>% 
+  # Activity location
+  left_join(ActivityLocationTypeCode_lookup, by = c("actlocationtype" = "ActivityLocationTypeCodeCode"))
 
+ShropCom_contacts <-
+  ShropCom_contacts_1620 %>%
+  filter(substr(carecontactdate,1,4) == "2019") # Adjust year filter as necessary for Sankey diagram
+  
 ShropCom_contacts %>% 
   summarise(
     row_count = n(),
     record_count = n_distinct(recordnumber),
-    care_contact_count = n_distinct(carecontactid)
-    )
+    care_contact_count = n_distinct(carecontactid))
 
-ShropCom_contacts_1819_grouped <-    
-  ShropCom_contacts %>%
-  group_by(child_adult,
-           consult_type_group,
-           contact_activity_group
-           ) %>% 
-  summarise(care_contacts = n_distinct(carecontactid))
+# Grouped contacts by consultation mode, activity and location - For excel output and clinical selection
+ShropCom_contacts_1620  %>% 
+  group_by(consult_type_group,
+           contact_activity_group,
+           ActivityLocationTypeGroup) %>% 
+  summarise(care_contacts = n_distinct(carecontactid)) %>% 
+  ungroup() %>% 
+  group_by(consult_type_group,
+           contact_activity_group,
+           ActivityLocationTypeGroup) %>% 
+  arrange(desc(care_contacts))
 
+## ShropCom Contacts Sankey ####
 # Flow/sankey data
 ShropCom_contacts_flow <-
   # Age
@@ -1062,6 +1369,84 @@ sankeyNetwork(Links = ShropCom_contact_links,
               fontSize = 12,
               fontFamily = "sans-serif"
               )
+
+## Community care - ShropCom care contacts & referrals ####
+# Add either location of contact or clinician type 
+ShropCom_refs_1620_reduced <-
+  ShropCom_refs_1620 %>% 
+  select(recordnumber, 
+         patient_id, 
+         servicereqid, 
+         referralreqrecdate, 
+         sourceofreferralforcommunity,
+         primaryreasonforreferral,
+         reason_for_referral_to_community_care_code,
+         reason_for_referral_to_community_care_description_short,
+         )
+
+# Combine contacts and referrals ()
+ShropCom_contacts_refs <-
+ShropCom_contacts_1620  %>%
+  left_join(ShropCom_refs_1620_reduced, 
+            by = c("servicereqid", "recordnumber", "patient_id"), 
+            keep = FALSE)
+
+# Group contact-referrals data by fields of interest
+ShropCom_contacts_refs_2019_grouped <-
+ShropCom_contacts_refs %>% 
+  filter(substr(carecontactdate,1,4) == "2019") %>% 
+  group_by(#child_adult,
+           consult_type_group,
+           contact_activity_group,
+           reason_for_referral_to_community_care_description_short,
+           ActivityLocationTypeGroup) %>% 
+  summarise(care_contacts = n_distinct(carecontactid))
+
+# Pivot wider by contact location
+ShropCom_contacts_location <-
+ShropCom_contacts_refs_2019_grouped %>% 
+  group_by(consult_type_group,
+           contact_activity_group,
+           ActivityLocationTypeGroup) %>% 
+  summarise(care_contacts = sum(care_contacts)) %>% 
+  pivot_wider(id_cols = c(1,2),
+              names_from = ActivityLocationTypeGroup,
+              values_from = care_contacts) %>% 
+  clean_names()
+
+#write_csv(ShropCom_contacts_location, "ShropCom_contacts_location.csv")
+
+# Arrange grouped data - descending contact counts
+ShropCom_contacts_refs_2019_grp_arranged <-
+  ShropCom_contacts_refs_2019_grouped %>%
+  rename(reason_for_ref = reason_for_referral_to_community_care_description_short) %>% 
+  filter(reason_for_ref %!in% c(
+    "NULL", "Reason for referral not known")) %>% 
+  drop_na(reason_for_ref) %>% 
+  mutate(prop = care_contacts/sum(care_contacts)*100) %>% 
+  mutate(reason_for_ref = 
+           case_when(
+             prop < 1 ~ "Other",
+             TRUE ~ reason_for_ref
+             )) %>% 
+  group_by(#child_adult,
+           consult_type_group,
+           contact_activity_group,
+           ActivityLocationTypeGroup,
+           reason_for_ref
+           ) %>% 
+  summarise(care_contacts = sum(care_contacts)) %>% 
+  mutate(prop = round(care_contacts/sum(care_contacts)*100,2)) %>% 
+  arrange(#child_adult, 
+          consult_type_group, 
+          contact_activity_group, 
+          ActivityLocationTypeGroup,
+          desc(care_contacts)
+          ) 
+  
+
+#write_csv(ShropCom_contacts_refs_2019_grp_arranged, "ShropCom_contacts_refs_2019_grp_arranged.csv")
+
 ## Mental health ####
 
 # MHSDS data - contact activity   
@@ -1119,8 +1504,83 @@ mhsds_activity_location_type_code_lookup <-
   "X01",	"Other locations not elsewhere classified"
   )
 
-mhsds_contacts_1620 <- 
-  read_csv("Activity_data_raw/MHSDS_contacts_1620.csv") %>% 
+# Consultation medium 
+# https://www.datadictionary.nhs.uk/archive/DD%20Release%20December%202019/data_dictionary/attributes/c/cons/consultation_medium_used_de.asp?shownav=1
+consultation_medium_type <-
+  tribble(
+    ~code, ~cons_medium_desc,
+    "01",	"Face to face communication",
+    "02",	"Telephone",
+    "03",	"Telemedicine",
+    "04",	"Talk type for a PERSON unable to speak",
+    "05",	"Email",
+    "06",	"Short Message Service (SMS) - Text Messaging",
+    "07",	"On-line Triage",
+    "98",	"Other (not listed)")
+
+# Service or team type referred to
+# https://datadictionary.nhs.uk/attributes/service_or_team_type_for_mental_health.html
+
+service_team_type_referred_to <-
+  tribble(
+    ~code, ~team_service_desc,
+    
+    "A01", "Day Care Service",
+    "A02", "Crisis Resolution Team/Home Treatment Service",
+    "A03", "Crisis Resolution Team",
+    "A04", "Home Treatment Service",
+    "A05", "Primary Care Mental Health Service",
+    "A06", "Community Mental Health Team - Functional",
+    "A07", "Community Mental Health Team - Organic",
+    "A08", "Assertive Outreach Team",
+    "A09", "Community Rehabilitation Service",
+    "A10", "General Psychiatry Service",
+    "A11", "Psychiatric Liaison Service",
+    "A12", "Psychotherapy Service",
+    "A13", "Psychological Therapy Service (non IAPT)",
+    "A14", "Early Intervention Team for Psychosis",
+    "A15", "Young Onset Dementia Team",
+    "A16", "Personality Disorder Service",
+    "A17", "Memory Services/Clinic",
+    "A18", "Single Point of Access Service",
+    "A19", "24/7 Crisis Response Line",
+    "A20", "Health Based Place of Safety Service",
+    "A21", "Crisis Café/Safe Haven/Sanctuary Service",
+    "A22", "Walk-in Crisis Assessment Unit Service",
+    "A23", "Psychiatric Decision Unit Service",
+    "A24", "Acute Day Service",
+    "A25", "Crisis House Service",
+    "B01", "Forensic Mental Health Service",
+    "B02", "Forensic Learning Disability Service",
+    "C01", "Autistic Spectrum Disorder Service",
+    "C02", "Specialist Perinatal Mental Health Community Service",
+    "C03", "Eating Disorders/Dietetics Service (Retired 1 April 2020)",
+    "C04", "Neurodevelopment Team",
+    "C05", "Paediatric Liaison Service",
+    "C06", "Looked After Children Service",
+    "C07", "Youth Offending Service",
+    "C08", "Acquired Brain Injury Service",
+    "C09", "Community Eating Disorder Service (CEDS) for Children and Young People (Retired 1 April 2020)",
+    "C10", "Community Eating Disorder Service",
+    "D01", "Substance Misuse Team",
+    "D02", "Criminal Justice Liaison and Diversion Service",
+    "D03", "Prison Psychiatric Inreach Service",
+    "D04", "Asylum Service",
+    "D05", "Individual Placement and Support Service",
+    "D06", "Mental Health In Education Service",
+    "D07", "Problem Gambling Service",
+    "D08", "Rough Sleeping Service",
+    "E01", "Community Team for Learning Disabilities",
+    "E02", "Epilepsy/Neurological Service",
+    "E03", "Specialist Parenting Service",
+    "E04", "Enhanced/Intensive Support Service",
+    "Z01", "Other Mental Health Service - in scope of National Tariff Payment System",
+    "Z02", "Other Mental Health Service - out of scope of National Tariff Payment System"
+    )
+
+# Import MHSDS contact, referral and team data in one
+mhsds_contacts_1620 <-
+  read_csv("Activity_data_raw/MH_Cavell_pts_contacts_refs_team_1620.csv") %>% 
   clean_names() %>% 
   left_join(mhsds_activity_location_type_code_lookup, by = c("act_loc_type_code" = "code")) %>% 
   #select(act_loc_type_code, description) %>% 
@@ -1145,16 +1605,20 @@ mhsds_contacts_1620 <-
              cons_medium_used == 01 ~ "Face-to-face",
              TRUE ~ "Other"
            )) %>% 
-  mutate(care_cont_date = as.Date(care_cont_date, "%d/%m/%Y"))
- 
+  mutate(care_cont_date = as.Date(care_cont_date, "%d/%m/%Y")) %>% 
+  left_join(service_team_type_referred_to, by = c("serv_team_type_ref_to_mh" = "code"))
+
+
 mhsds_contacts_19 <-
 mhsds_contacts_1620  %>% 
   filter(substr(care_cont_date, 1,4) == "2019")
 
-mhsds_contacts_20_grouped <-
+mhsds_contacts_19_grouped <-
   mhsds_contacts_19 %>% 
-  group_by(child_adult, cons_medium, location_type_group) %>% 
+  group_by(child_adult, cons_medium, location_type_group, team_service_desc) %>% 
   summarise(contact_count = n_distinct(care_contact_id))
+
+#write_csv(mhsds_contacts_19_grouped, "mhsds_contacts_19_grouped.csv")
 
 # Reorganised
 # Flow/sankey data
@@ -1257,6 +1721,144 @@ mhsds_contact_links <-
       select(source, target, care_contacts)
   )
 
+mhsds_contact_vis <-
+  sankeyNetwork(Links = mhsds_contact_links, 
+                Nodes = mhsds_contacts_nodes,
+                Source = "source",
+                Target = "target",
+                Value = "care_contacts",
+                NodeID = "to_value", #Merged field with node name and contact count
+                nodeWidth = 15,
+                unit = "care contacts", 
+                fontSize = 12,
+                fontFamily = "sans-serif", 
+                #colourScale = mycolourscale
+  )
+
+# 'Community' includes mental health contacts in the following settings:
+# Dental
+# Care Home
+# Education
+# Nursey facility
+# Prison setting
+# Immigration facilities
+
+## IAPT ####
+
+# https://datadictionary.nhs.uk/data_elements/appointment_type__improving_access_to_psychological_therapies_.html
+iapt_app_type <-
+  tribble(
+    ~apptype,	~apptype_desc,
+    "01", "Assessment",
+    "02", "Treatment",
+    "03", "Assessment and Treatment",
+    "04", "Review Only",
+    "05", "Review and Treatment",
+    "06", "Follow-up appointment after treatment end",
+    "07", "Other (not listed)"
+  )
+
+iapt_therapy_type <-
+  tribble(
+    ~TherapyTypeId, ~TherapyTypeCode,	~TherapyTypeDescription,
+    1	, "20",	"Guided self help (book)",
+    2	, "21",	"Non-guided self help (book)",
+    3	, "22",	"Guided self help (computer)",
+    4	, "23",	"Non-guided self help (computer)",
+    5	, "24",	"Behavioural activation (low intensity)",
+    6	, "25",	"Structured physical activity",
+    7	, "26",	"Ante/post natal counselling",
+    8	, "27",	"Psychoeducational peer support",
+    9	, "28",	"Other low intensity",
+    10, "29",	"Employment support (low intensity)",
+    11, "40",	"Applied relaxation",
+    12, "41",	"Behavioural activation (high intensity)",
+    13, "42",	"Couples therapy for depression",
+    14, "43",	"Collaborative care (for people with depression and a chronic physical health condition)",	
+    15, "44",	"Counselling for depression",
+    16, "45",	"Brief psychodynamic psychotherapy",
+    17, "46",	"Eye movement desensitisation reprocessing",
+    18, "47",	"Mindfulness",
+    19, "48",	"Other high intensity (not specified above)",
+    20, "49",	"Employment support (high intensity)",
+    21, "50",	"Cognitive behaviour therapy (CBT)",
+    22, "51",	"Interpersonal psycho therapy (IPT)"
+  )
+
+iapt <- 
+  read_csv("Activity_data_raw/IAPT_appts_1620.csv") %>% 
+  clean_names() %>% 
+  mutate(child_adult = 
+           case_when(
+             age_start_reporting_period < 18 ~ "Child",
+             TRUE ~ "Adult"
+           )) %>% 
+  left_join(iapt_app_type, by = c("apptype")) %>% 
+  mutate(cons_medium_group = 
+           case_when(consmedium == "01" ~ "Face-to-face",
+                     TRUE ~ "Other")) %>% 
+  left_join(iapt_therapy_type, by = c("thertype1" = "TherapyTypeCode"))
+
+iapt %>% 
+  summarise(
+    iapt_person_id_count = n_distinct(iapt_person_id),
+    pseudo_number_count = n_distinct(pseudo_number),
+    iapt_record_number_count = n_distinct(iapt_record_number),
+    appt_count = n_distinct(appointment_id)
+    )
+
+# Monthly IAPT 
+iapt_monthly_count <-
+iapt %>% 
+  select(appointment, appointment_id) %>% 
+  group_by(substr(appointment,1,7)) %>%
+  summarise(appt_count = n_distinct(appointment_id)) %>% 
+  rename(date = 1) %>% 
+  mutate(date = as.Date(paste0(date,"-01"))) 
+
+iapt_monthly_count %>% 
+  ggplot(aes(x = date, y = appt_count)) +
+  geom_smooth(method = 'loess', span = 0.2, colour = "#f9bf07") +
+  labs(x = "Date", y = "Appointment count", 
+       title = "Monthly IAPT appointments for Shrewsbury Health and Well-being Hub GP patients, 2016-20.")
+
+# Describe IAPT contacts by therapy type 
+iapt %>%
+  group_by(child_adult, cons_medium_group, TherapyTypeDescription) %>% 
+  summarise(n = n_distinct(appointment_id)) %>% 
+  drop_na(TherapyTypeDescription) 
+
+# Annual IAPT contacts
+iapt %>% 
+  mutate(year = year(appointment)) %>% 
+  group_by(year, TherapyTypeDescription) %>% 
+  summarise(appointments = n_distinct(appointment_id)) %>% 
+  mutate(year = as.character(year)) %>% 
+  pivot_wider(id_cols = TherapyTypeDescription, names_from = year, values_from = appointments) %>% 
+  drop_na(TherapyTypeDescription) %>% 
+  clean_names() %>% 
+  filter(x2020 > 1)
+
+# Visualise annual IAPT appointments by type 
+iapt %>% 
+  mutate(year = year(appointment)) %>% 
+  group_by(year, TherapyTypeDescription) %>% 
+  summarise(appointments = n_distinct(appointment_id)) %>% 
+  mutate(year = as.character(year)) %>% 
+  drop_na(TherapyTypeDescription) %>%
+  filter(appointments > 50) %>% 
+  
+  ggplot(aes(x = appointments, y = reorder(TherapyTypeDescription, appointments), 
+             fill = TherapyTypeDescription)) +
+  geom_col() +
+  facet_wrap(~year) +
+  scale_fill_SU() +
+  theme(legend.position = "none", 
+        strip.text = element_text(face = "bold")) +
+  scale_x_continuous(labels = scales::comma) +
+  labs(title = "Annual counts of IAPT appointments for Shrewsbury Health and Well-being Hub patients by therapy type, 2016-20",
+       subtitle = "...",
+       x = "Appointments", y = "Therapy type")
 ## Diagnostic data ####
 
 # DM01 monthly returns
@@ -1556,6 +2158,294 @@ dmo01_union %>%
            )) %>% 
   filter(cavell_activity < 1000) %>%  # Fudge to ignore high outlier in Shrewsbury and Telford Hospital 
   ungroup()
+## Maternity data ####
+
+birth_episodes <- 
+  read_csv("Activity_data_raw/IP_birth_episodes_1620.csv") %>% 
+  clean_names() %>% 
+  mutate(admission_date = as.Date(admission_date)) %>% 
+  filter(age_on_admission > 1) # remove children from birth episodes data
+
+# Annual counts
+birth_episodes %>%
+  filter(admission_date < "2021-01-01") %>% 
+  group_by(substr(episode_start_date,1,4)) %>%
+  summarise(birth_episodes = n_distinct(apce_ident)) %>% 
+  rename(year = 1) %>% 
+  mutate(antenatal_apps = birth_episodes * 8, # Approx. 8 antenatal appointments per pregnancy 
+         antenatel_scans = birth_episodes * 3 # Approx 3 antenatal scans per pregnancy
+         )
+
+# Monthly count
+birth_episodes %>%
+  filter(admission_date < "2021-01-01")  %>% 
+  group_by(substr(episode_start_date,1,7))%>%
+  summarise(birth_episodes = n_distinct(apce_ident)) %>% 
+  rename(month = 1) %>%
+  mutate(month = paste0(month,"-01")) %>% 
+  mutate(month = as.Date(month)) %>% 
+  
+  ggplot(aes(x = month, y = birth_episodes)) +
+  geom_smooth(method = "loess", span = 0.2, colour = "#f9bf07") + 
+  labs(x = "Month", y = "Birth episodes",
+       title = "Monthly births in Shrewsbury Health and Well-being Hub patients, 2016-19")
+
+# Monthly contacts
+ante_natal_contacts <-
+birth_episodes %>%
+  filter(admission_date < "2021-01-01",
+         age_on_admission > 1)  %>% 
+  group_by(substr(episode_start_date,1,7))%>%
+  summarise(birth_episodes = n_distinct(apce_ident)) %>% 
+  rename(month = 1) %>%
+  mutate(month = as.Date(paste0(month,"-01"))) %>% 
+  mutate(antenatal_apps = birth_episodes * 8, # Approx. 8 antenatal appointments per pregnancy 
+         antenatel_scans = birth_episodes * 3 # Approx 3 antenatal scans per pregnancy
+  )
+
+# Daily contacts
+ante_natal_contacts_daily <-
+  birth_episodes %>%
+  filter(admission_date < "2021-01-01",
+         age_on_admission > 1)  %>% 
+  group_by(episode_start_date)%>%
+  summarise(birth_episodes = n_distinct(apce_ident)) %>% 
+  rename(date = 1) %>%
+  mutate(antenatal_apps = birth_episodes * 8, # Approx. 8 antenatal appointments per pregnancy 
+         antenatel_scans = birth_episodes * 3 # Approx 3 antenatal scans per pregnancy
+         )
+
+# Daily count
+birth_episodes %>%
+  filter(admission_date < "2021-01-01")  %>% 
+  group_by(episode_start_date)%>%
+  summarise(birth_episodes = n_distinct(apce_ident)) %>% 
+
+  ggplot(aes(x = episode_start_date, y = birth_episodes)) +
+  geom_smooth(method = "loess", span = 0.2, colour = "#f9bf07") + 
+  labs(x = "Episode date", y = "Birth episodes",
+       title = "Daily births in Shrewsbury Health and Well-being Hub patients, 2016-19")
+
+## Phase 1 output - Phase 2 input (?) ####
+# Transform activity into uniform structure - monthly volumes 
+
+# GP consultations 
+
+# Maternity 
+
+# Diagnostic 
+diagnostics_cavell <-
+  dmo01_union_cavell %>% 
+  mutate(month = as.Date(paste0(substr(date, 1,7), "-01"))) %>% 
+  mutate(diag_test_group = 
+           case_when(
+             diagnostic_tests == "CT" ~ diagnostic_tests,
+             diagnostic_tests == "MRI" ~ diagnostic_tests,
+             diagnostic_tests == "ECG" ~ diagnostic_tests,
+             diagnostic_tests == "Non-obstetric USS" ~ "USS",
+             diagnostic_tests == "Echocardiography" ~ "Echo",
+             diagnostic_tests == "Flexi sigmoidoscopy" ~ "Flexi_sig",
+             TRUE ~ "Other"
+           )) %>% 
+  #select(diagnostic_tests, diag_test_group) %>% distinct()
+  group_by(month, diag_test_group) %>% 
+  summarise(cavell_activity = sum(cavell_activity)) %>% 
+  mutate(diag_test_group = paste0("diag_", diag_test_group)) %>% 
+  
+  pivot_wider(id_cols = month, 
+              names_from = diag_test_group,
+              values_from = cavell_activity) %>% 
+  clean_names()
+
+
+# Daily diagnostic data? - Downloaded in monthly returns
+diagnostics_cavell_daily <-
+  diagnostics_cavell %>% 
+  mutate(diag_ct = diag_ct/30,
+         diag_ecg = diag_ecg/30,
+         diag_flexi_sig = diag_flexi_sig/30,
+         diag_mri = diag_mri/30,
+         diag_other = diag_other/30,
+         diag_uss = diag_uss/30,
+         diag_echo = diag_echo/30
+         )
+
+# MH 
+mh_phase_2_input <-
+  mhsds_contacts_1620 %>% 
+  filter(location_type_group != "Inpatient") %>% 
+  filter(team_service_desc %!in% c(
+    "Forensic Mental Health Service",
+    "Prison Psychiatric Inreach Service")) %>%  # Exclusions from Ian Chan
+  mutate(month = as.Date(paste0(substr(care_cont_date,1,7),"-01"))) %>% 
+  group_by(month, location_type_group) %>% 
+  summarise(contact_count = n_distinct(care_contact_id)) %>% 
+  mutate(location_type_group = paste0("MH_", location_type_group)) %>% 
+  pivot_wider(id_cols = month,
+              names_from = location_type_group,
+              values_from = contact_count) %>% 
+  clean_names()
+
+mh_phase_2_input_daily <-
+  mhsds_contacts_1620 %>% 
+  filter(location_type_group != "Inpatient") %>% 
+  filter(team_service_desc %!in% c(
+    "Forensic Mental Health Service",
+    "Prison Psychiatric Inreach Service")) %>%  # Exclusions from Ian Chan
+  #mutate(month = as.Date(paste0(substr(care_cont_date,1,7),"-01"))) %>% 
+  group_by(care_cont_date, location_type_group) %>% 
+  summarise(contact_count = n_distinct(care_contact_id)) %>% 
+  rename(date = 1) %>% 
+  mutate(location_type_group = paste0("MH_", location_type_group)) %>% 
+  pivot_wider(id_cols = date,
+              names_from = location_type_group,
+              values_from = contact_count) %>% 
+  clean_names()
+
+# IAPT
+# All referral teams included - data split into face-to-face and other consultation medium
+iapt_phase_2_input <-
+  iapt %>%
+  mutate(month = as.Date(paste0(substr(appointment,1,7), "-01"))) %>% 
+  group_by(month, cons_medium_group) %>% 
+  summarise(n = n_distinct(appointment_id)) %>% 
+  mutate(cons_medium_group = paste0("IAPT_", cons_medium_group)) %>% 
+  pivot_wider(id_cols = month, 
+              names_from = cons_medium_group,
+              values_from = n) %>% 
+  clean_names()
+
+# IAPT Daily 
+iapt_phase_2_input_daily <-
+  iapt %>%
+  #mutate(month = as.Date(paste0(substr(appointment,1,7), "-01"))) %>% 
+  group_by(appointment, cons_medium_group) %>% 
+  summarise(n = n_distinct(appointment_id)) %>% 
+  rename(date = 1) %>% 
+  mutate(cons_medium_group = paste0("IAPT_", cons_medium_group)) %>% 
+  pivot_wider(id_cols = date, 
+              names_from = cons_medium_group,
+              values_from = n) %>% 
+  clean_names()
+
+# OPA - Dictated by imaging capacity of centre - awaiting feedback from Board meeting... 
+opa_phase_2_input <-
+  opa_colated %>% 
+  filter(attendance_type != "Attendance - Multi professional") %>% 
+  mutate(month = as.Date(paste0(substr(appointment_date,1,7), "-01")))  %>% 
+  group_by(month, imaging) %>% 
+  summarise(opa_contacts = n_distinct(opa_ident)) %>% 
+  arrange(month) %>%
+  mutate(imaging = paste0("opa_", imaging)) %>% 
+  pivot_wider(id_cols = month, 
+              names_from = imaging,
+              values_from = opa_contacts) %>% 
+  clean_names()
+
+# OPA daily
+opa_phase_2_input_daily <-
+  opa_colated %>% 
+  filter(attendance_type != "Attendance - Multi professional") %>% 
+ # mutate(month = as.Date(paste0(substr(appointment_date,1,7), "-01")))  %>% 
+  group_by(appointment_date, imaging) %>% 
+  summarise(opa_contacts = n_distinct(opa_ident)) %>% 
+  rename(date = 1) %>% 
+  arrange(date) %>%
+  mutate(imaging = paste0("opa_", imaging)) %>% 
+  pivot_wider(id_cols = date, 
+              names_from = imaging,
+              values_from = opa_contacts) %>% 
+  clean_names()
+  
+  
+# Community care - How to include domiciliary contacts? We want to include space required for service relocation
+ShropCom_phase_2_input <-
+  ShropCom_contacts_refs %>% 
+  # Exclusions from clinicians 
+  filter(ActivityLocationTypeGroup %in% c(
+    "Primary care", 
+    "Secondary care",
+    "Community")) %>% 
+  mutate(month = as.Date(paste0(substr(carecontactdate,1,7), "-01"))) %>%
+  group_by(month) %>% 
+  summarise(care_contacts = n_distinct(carecontactid)) %>% 
+  arrange(month) %>% 
+  rename(shropcom_contacts = care_contacts)
+
+ShropCom_phase_2_input_domiciliary <-
+  ShropCom_contacts_refs %>% 
+  filter(ActivityLocationTypeGroup %in% c("Domiciliary")) %>% 
+  mutate(month = as.Date(paste0(substr(carecontactdate,1,7), "-01"))) %>%
+  group_by(month) %>% 
+  summarise(care_contacts = n_distinct(carecontactid)) %>% 
+  arrange(month) %>% 
+  rename(shropcom_domiciliary_contacts = care_contacts)
+
+# Shropcom daily
+ShropCom_phase_2_input_daily <-
+  ShropCom_contacts_refs %>% 
+  # Exclusions from clinicians 
+  filter(ActivityLocationTypeGroup %in% c(
+    "Primary care", 
+    "Secondary care",
+    "Community")) %>% 
+  #mutate(month = as.Date(paste0(substr(carecontactdate,1,7), "-01"))) %>%
+  group_by(carecontactdate) %>% 
+  summarise(care_contacts = n_distinct(carecontactid)) %>% 
+  rename(date = 1) %>% 
+  arrange(date) %>% 
+  rename(shropcom_contacts = care_contacts)
+
+
+# Social care - awaiting data from Shropshire council or space allocation to assume volume from
+
+
+# Phase 2 input
+# Monthly
+phase_2_input <-
+  ante_natal_contacts %>% 
+  select(-birth_episodes) %>% 
+  left_join(
+    consultations_cavell %>% 
+      mutate(month = as.Date(paste0(substr(appointment_date, 1,7), "-01"))) %>% 
+      group_by(month) %>% 
+      summarise(GP_consultations = sum(cavell_appts)),
+    by = c("month")) %>%
+  select(1,4,2,3) %>% 
+  left_join(diagnostics_cavell, by = c("month")) %>% 
+    # Check - what diagnostic activity will be included/excluded - equipment driven?
+    # Check - Will activity from all 3 providers be taken on in Cavell Centre?
+  left_join(mh_phase_2_input, by = c("month")) %>% 
+    # Check whether 'Community' cases should be in there?
+  left_join(iapt_phase_2_input, by = c("month")) %>% 
+  left_join(ShropCom_phase_2_input, by = c("month")) %>% 
+  left_join(ShropCom_phase_2_input_domiciliary, by = c("month")) %>% 
+  left_join(opa_phase_2_input, by = c("month")) %>% 
+  pivot_longer(cols = -month) %>% 
+  mutate(value = replace_na(value, 0)) %>% 
+  pivot_wider(id_cols = month)
+
+# Daily 
+phase_2_input_daily <-
+  ante_natal_contacts_daily %>% 
+  select(-birth_episodes) %>% 
+  left_join(
+    consultations_cavell %>% 
+      group_by(appointment_date) %>% 
+      summarise(GP_consultations = sum(cavell_appts)),
+    by = c("date" = "appointment_date")) %>%
+  select(1,4,2,3) %>%
+  mutate(month = as.Date(paste0(substr(date, 1,7), "-01"))) %>% 
+  left_join(diagnostics_cavell_daily, by = c("month")) %>% 
+  select(-month) %>% 
+  left_join(mh_phase_2_input_daily, by = c("date")) %>% 
+  left_join(iapt_phase_2_input_daily, by = c("date")) %>% 
+  left_join(ShropCom_phase_2_input_daily, by = c("date")) %>% 
+  left_join(opa_phase_2_input_daily, by = c("date")) %>% 
+  pivot_longer(cols = -date) %>% 
+  mutate(value = replace_na(value, 0)) %>% 
+  pivot_wider(id_cols = date)
+
 ```
 
 # Background/Project Details
@@ -1564,7 +2454,7 @@ The first strand of our analysis will be to collate and summarise GP surgery pat
 Without access to individual level GP data, we will not be able to account for multi-morbidity, that is, we will present the combined volume of patients across the 8 practices who are know to have heart disease for example, alongside the number of COPD, but not the number with both conditions. 
 We will also estimate the volume and nature of referrals to community care for this combined patient population. A preliminary data query, using our Community Services Data Set would suggest our combined population were responsible for approximately 130,000 referrals to community services during 2019, primarily for footcare, MSK problems and the ‘Healthy Child Pathway’. Discussions will be required to agree the most appropriate method of estimating ‘existing’ demand given changes to referrals and care seeking behaviour throughout the pandemic. 
 This exercise will provide high level estimates of demographics and clinical need for the new patient population and will serve as a baseline to feed into our model when predicting wider service engagement and demand.
-To complete this analysis, we will also identify activity across other aspects of the health and care system used by patients at the 8 practices according to the Cavell Centre service model. This will include but is not necessarily restricted to:
+To complete this analysis, we will also identify activity across other aspects of the health and care system used by patients at the 8 practices according to the Shrewsbury Health and Well-being Hub service model. This will include but is not necessarily restricted to:
 
  *	Outpatient appointments at RSH, PRH and other acute providers
  *	Appointments/rehab/therapies at RJAH/ShropCom
@@ -1573,7 +2463,7 @@ To complete this analysis, we will also identify activity across other aspects o
  *	Midwifery and antenatal care
  *	Any others from ‘service spec’
  
- The programme team will need to provide definitions of all the activity types and clinical areas that are relevant to the Cavell centre model for each of the above points of delivery so that only relevant data is extracted and counted.
+ The programme team will need to provide definitions of all the activity types and clinical areas that are relevant to the Shrewsbury Health and Well-being Hub model for each of the above points of delivery so that only relevant data is extracted and counted.
 
 
 # Population demographics
@@ -1649,7 +2539,7 @@ a + b +
   plot_layout(widths = c(0.65,0.35)) +
   plot_annotation(
     title = "Practice patient count over time, 2018-21",
-    subtitle = "Changes in patient population from 8x practices included in Shrewsbury Cavell Centre planning",
+    subtitle = "Changes in patient population from 8x practices included in Shrewsbury Health and Well-being Hub planning",
     caption = 'Source: NHS Digital - Patients registered at a GP Practice'
   )
 ```
@@ -1720,7 +2610,7 @@ While practices differ in size/patient capacity, changes over time have been lar
   plot_layout(widths = c(0.4,0.6)) +
   plot_annotation(
     title = 'Combined and practice-specific patient population by age and gender, June 2021',
-    subtitle = 'Patient population from 8x practices included in Shrewsbury Cavell Centre planning',
+    subtitle = 'Patient population from 8x practices included in Shrewsbury Health and Well-being Hub planning',
     caption = 'Source: NHS Digital - Patients registered at a GP Practice'
   )
 ```
@@ -1767,13 +2657,13 @@ practice_pop_imd_decile %>%
   plot_layout(widths = c(0.4,0.6)) +
   plot_annotation(
     title = 'Combined and practice-specific patient population by Index of Multiple Deprivation (IMD) Decile, June 2021',
-    subtitle = 'Patient population from 8x practices included in Shrewsbury Cavell Centre planning',
+    subtitle = 'Patient population from 8x practices included in Shrewsbury Health and Well-being Hub planning',
     caption = 'IMD decile 1: Most deprived 10% of the populaton. IMD decile 10: Most affluent 10% of the population'
   )
 
 ```
 
-The above graph suggests relatively low levels of deprivation in the Cavell centre patient population with the majority of patients living in more affluent areas of the country. The deprivation level of a patient here is a function of their LSOA of residence; this is not an individual level statistic and as such there may be highly deprived patients, in relative or absolute terms, living in the catchment area.
+The above graph suggests relatively low levels of deprivation in the Shrewsbury Health and Well-being Hub patient population with the majority of patients living in more affluent areas of the country. The deprivation level of a patient here is a function of their LSOA of residence; this is not an individual level statistic and as such there may be highly deprived patients, in relative or absolute terms, living in the catchment area.
 
 Local authority data and/or population segmentation tools such as Acorn may educate the analysis to small areas of localised deprivation in the combined population.
 
@@ -1817,7 +2707,7 @@ Acorn_pop_seg %>%
   labs(x = "Practice",
        y = "Proportion of patient population",
        fill = "Acorn Category",
-       title = "Cavell Centre GP population by Acorn population segmentation",
+       title = "Shrewsbury Health and Well-being Hub GP population by Acorn population segmentation",
        subtitle = "Proportion of practice registered population by Acorn population segmentation 'Category', 2019")
 ```
 
@@ -1841,7 +2731,7 @@ phe_clinical_indicators_qof_comb %>%
         strip.text = element_text(face = "bold")) +
   labs(x = "Date", y = "Prevalence (%)", colour = "Disease group",
        title = "QOF disease prevalence",
-       subtitle = "Changing prevalence of selected disease groups in Cavell Centre practices, 2015/16-19/20",
+       subtitle = "Changing prevalence of selected disease groups in Shrewsbury Health and Well-being Hub practices, 2015/16-19/20",
        caption = "Source: PHE Fingertips - GP Profiles, QOF returns")
 
 ```
@@ -1870,7 +2760,7 @@ STW_practices_external_flag_long %>%
   labs(y = "Patient proportion",
        x = "Age", 
        fill = "",
-       title = "Age and gender structure of Cavell Centre patients is similar to wider CCG patients",
+       title = "Population stucture of Shrewsbury Health and Well-being Hub patients is similar to wider CCG patients",
        subtitle = "NHS Shropshire and Telford and Wrekin CCG Patient population by age and gender, June 2021 ",
        caption = 'Source: NHS Digital - Patients registered at a GP Practice')
 
@@ -1878,45 +2768,54 @@ STW_practices_external_flag_long %>%
 
 
 ```{r Cavel centre as a proportion of wider CCG}
-# create_dt(
-# STW_practices_external_flag %>%
-#   group_by(external) %>% 
-#   summarise(male_sum = sum(male_count),
-#             female_sum = sum(female_count)) %>% 
-#   group_by(external) %>% 
-#   mutate(total = sum(male_sum, female_sum)) %>% 
-#   select(external, total) %>% 
-#   ungroup() %>% 
-#   mutate(prop = round(total/sum(total)*100,1))
-# )
+create_dt(
+STW_practices_external_flag %>%
+ group_by(external) %>% 
+ summarise(male_sum = sum(male_count),
+           female_sum = sum(female_count)) %>% 
+ group_by(external) %>% 
+ mutate(total = sum(male_sum, female_sum)) %>% 
+ select(external, total) %>% 
+ ungroup() %>% 
+ mutate(prop = round(total/sum(total)*100,1))
+)
 ```
 
-Cavel Centre patient population accounts for 12.8% of CCG patients/consultations. Having multiplied CCG-level, monthly consultation counts by 0.128, we can estimate the volumes attributed to the 8 Cavell Centre practices.
+Shrewsbury Health and Well-being Hub patient population accounts for 12.8% of CCG patients/consultations. Having multiplied CCG-level, monthly consultation counts by 0.128, we can estimate the volumes attributed to the 8 Shrewsbury Health and Well-being Hub practices.
 
 ```{r Consultation rate}
 consultations_cavell %>% 
-  group_by(appointment_date) %>% 
+  mutate(month = as.Date(paste0(substr(appointment_date, 1,7), "-01"))) %>% 
+  group_by(month) %>% 
   summarise(n = sum(cavell_appts)) %>% 
-  ggplot(aes(x=appointment_date, y = n)) +
+  ggplot(aes(x= month, y = n)) +
   annotate("rect", xmin = as.Date("2020-03-23"), xmax = as.Date("2020-07-04"), 
            ymin = -Inf, ymax = Inf, fill= "#fed976", alpha = 0.8) + # Lockdown 1
   annotate("rect", xmin = as.Date("2020-10-14"), xmax = as.Date("2021-01-04"), 
            ymin = -Inf, ymax = Inf, fill= "#fed976", alpha = 0.8) + # 3 tier system
-  annotate("text", x = as.Date("2020-05-13"), y = 1100, label = "National lockdown",
+  annotate("text", x = as.Date("2020-05-13"), y = 30000, label = "National lockdown",
            size = 3, angle = 90, colour = "#2c2825") +
-  annotate("text", x = as.Date("2020-11-24"), y = 1100, label = "3 Tier lockdown",
+  annotate("text", x = as.Date("2020-11-24"), y = 30000, label = "3 Tier lockdown",
            size = 3, angle = 90, colour = "#2c2825") +
   geom_smooth(method = "loess", span = 0.5, colour = "#f9bf07") +
+  scale_y_continuous(labels = scales::comma) +
   scale_color_SU() +
-  labs(x = "Date", y = "Count", colour = "Appointment mode",
-       title = "Changing count of consultations in Cavell Centre practices",
-       subtitle = "NHS Shropshire and Telford and Wrekin CCG monthly consultation counts discounted to Cavell Centre GP patient population",
+  labs(x = "Date", y = "Monthly count", colour = "Appointment mode",
+       title = "Consultation rate in Shrewsbury Health and Well-being Hub practices",
+       subtitle = "Shropshire and Telford and Wrekin CCG consultation counts discounted to Shrewsbury Health and Well-being Hub patient population",
        caption = "Source: NHS Digital - Appointments in General Practice")
 
 ```
-
+<br>
+Primary care consultation data is available to describe primary care activity by contact medium, health professional and the duration of time between booking an appointment and being seen. Above we can see the impact of the covid-19 pandemic on consultation rates in primary care in our 8x GP practices. Pre-pandemic levels were consistently around 27k appointments per month. Rates have not returned to pre-pandemic levels yet. 
+<br>
+Below the impact of the pandemic on consultation medium is made clear; we see a significant and sustained reduction in face-to-face consultations and a subsequent increase in telephone consultations as care was shifted to virtual delivery. Interestingly, we also see a post-pandemic increase in the rate at which patients are seen on the same day as their booking; perhaps linked to reduced consultations occurring overall or an emphasis on early contact screening to rule out covid-19.
+<br>
+<br>
 
 ```{r Consultations by appointment mode}
+(
+# Appointment mode
 consultations_cavell %>% 
   group_by(appointment_date, appt_mode) %>% 
   summarise(n = sum(cavell_appts)) %>% 
@@ -1931,40 +2830,16 @@ consultations_cavell %>%
            size = 3, angle = 90, colour = "#2c2825") +
   geom_smooth(method = "loess", span = 0.5) +
   scale_color_SU() +
-  labs(x = "Date", y = "Count", colour = "Appointment mode",
-       title = "Changing count of consultations in Cavell Centre practices by appointment mode",
-       subtitle = "NHS Shropshire and Telford and Wrekin CCG consultation counts discounted to Cavell Centre GP patient population",
-       caption = "Source: NHS Digital - Appointments in General Practice")
-
-```
-
-
-```{r Consultation by staff type}
-consultations_cavell %>% 
-  filter(hcp_type != "Unknown") %>% 
-  group_by(appointment_date, hcp_type) %>% 
-  summarise(n = sum(cavell_appts)) %>% 
-  ggplot(aes(x=appointment_date, y = n, colour = hcp_type)) +
-  annotate("rect", xmin = as.Date("2020-03-23"), xmax = as.Date("2020-07-04"), 
-           ymin = -Inf, ymax = Inf, fill= "#fed976", alpha = 0.8) + # Lockdown 1
-  annotate("rect", xmin = as.Date("2020-10-14"), xmax = as.Date("2021-01-04"), 
-           ymin = -Inf, ymax = Inf, fill= "#fed976", alpha = 0.8) + # 3 tier system
-  annotate("text", x = as.Date("2020-05-13"), y = 575, label = "National lockdown",
-           size = 3, angle = 90, colour = "#2c2825") +
-  annotate("text", x = as.Date("2020-11-24"), y = 575, label = "3 Tier lockdown",
-           size = 3, angle = 90, colour = "#2c2825") +
-  geom_smooth(method = "loess", span = 0.5) +
-  scale_color_SU() +
-  labs(x = "Date", y = "Count", colour = "Staff type",
-       title = "Changing count of consultations in Cavell Centre practices by healthcare professional type",
-       subtitle = "NHS Shropshire and Telford and Wrekin CCG consultation counts discounted to Cavell Centre GP patient population",
-       caption = "Source: NHS Digital - Appointments in General Practice")
-
-
-```
-
-
-```{r Consultation by time between booking and appointment}
+  theme(
+    legend.position = "top",
+    legend.text = element_text(size = 8),
+    plot.title = element_text(hjust = 0.5, size = 10)
+    ) +
+  guides(color=guide_legend(nrow=2, byrow=TRUE)) +
+  labs(x = "", y = "Count", colour = "", title = "Appointment mode")
+) +
+  (
+# Time between booking and appointment
 consultations_cavell %>% 
   filter(time_between_book_and_appt != "Unknown / Data Issue") %>% 
   group_by(appointment_date, time_between_book_and_appt) %>% 
@@ -1980,11 +2855,18 @@ consultations_cavell %>%
            size = 3, angle = 90, colour = "#2c2825") +
   geom_smooth(method = "loess", span = 0.3) +
   scale_color_SU() +
-  labs(x = "Date", y = "Count", colour = "",
-       title = "Changing count of consultations in Cavell Centre practices by time between booking and appointment",
-       subtitle = "NHS Shropshire and Telford and Wrekin CCG consultation counts discounted to Cavell Centre GP patient population",
-       caption = "Source: NHS Digital - Appointments in General Practice")
-
+  theme(
+    legend.position = "top",
+    legend.text = element_text(size = 8),
+    plot.title = element_text(hjust = 0.5, size = 10)
+    ) +
+  guides(color=guide_legend(nrow=3, byrow=TRUE)) +
+  labs(x = "Date", y = "Count", colour = "", title = "Time between booking appointment and contact")
+) +
+  plot_annotation(
+    title = "Changing count of consultations in Shrewsbury Health and Well-being Hub practices",
+    subtitle = "NHS Shropshire and Telford and Wrekin CCG consultation counts discounted to Shrewsbury Health and Well-being Hub GP patient population"
+    )
 
 ```
 
@@ -2047,7 +2929,7 @@ opa_by_speciality %>%
 a + b + plot_layout(widths = c(0.3, 0.7)) +
   plot_annotation(
     title = 'Outpatient care profile is very similar between practices',
-    subtitle = 'Proportion of outpatient appointments by medical/surgical speciality, Shrewsbury Cavel Centre GP patients, 2019/20',
+    subtitle = 'Proportion of outpatient appointments by medical/surgical speciality, Shrewsbury Shrewsbury Health and Well-being Hub GP patients, 2019/20',
     caption = 'Source: SUS outpatient records, accessed via NCDR'
   )
 ```
@@ -2059,59 +2941,45 @@ It is clear that the high volume specialities are consistent across all 8 practi
 - Opthamology and 
 - General Surgery.
 
-The above specialities may therefore be useful to consider when modelling future demand of the Cavell Centre.
-
 <br>
-The flow diagram below indicates outpatient attendance volume of patients from the Cavell Centre practices between 2018-20. We determine yellow boxes may be suitable for co-location however volumes vary significantly and will therefore confirmation of pathways suitable for co-location will impact future modelling.
+The sankey diagram below indicates outpatient attendance volume of patients from the Shrewsbury Health and Well-being Hub practices in 2019. Outpatient activity was considered in these terms to identify care unsuitable to collocate in primary care. Most outpatient activity does not require imaging equipment and is therefore suitable for collocation.
 
-![](OPA_flow_19.png)
+```{r}
+opa_sankey %>% 
+  hc_title(text = "Outpatient activity by appointment descriptor", align = "left") %>% 
+  hc_subtitle(text = "Secondary outpatient activity associated to Shrewsbury Health and Well-being Hub patients, 2019", align = "left") %>% 
+  hc_caption(text = "Note: Appointments include all ages and specialities") %>% 
+  hc_add_theme(hc_theme_flat())
+```
 
+An outpatient appointment was defined as an: **attendance** having a HRG code of 'WF01' or 'WF02' (Non-Admitted Attendance) or as a **procedure ** having a procedure code from the below list: 
 
-
-
-
-An outpatient attendance was defined as either having a HRG code of 'WF01' or 'WF02' (Non-Admitted Attendance) or having a procedure code from the below list: 
-
-  - Y981: Radiology of one body area (or 
+  - Y981: Radiology of one body area 
   - U131: Bone densitometry
   - U132: Ultrasound of bone
-  - U133: Magnetic resonance imaging of b
+  - U133: Magnetic resonance imaging of body
   - U214: Single photon emission computed
   - U216: Ultrasound scan NEC
   - U183: Mammography
   - U212: Computed tomography NEC
   - U211: Magnetic resonance imaging NEC
-  - U012: Magnetic resonance imaging of w
+  - U012: Magnetic resonance imaging 
   - Y973: Radiology with post contrast
   - U011: Computed tomography of whole body
+  - **Or no imaging**
   
 
-Specialities considered to be high volume are: 
+**Appointments suitable for collocation include:** 
 
-  - T&O
-  - Anaesthetics
-  - General Medicine
-  - Rehabilitation Medicine
-  - Cardiology
-  - Gynaecology
-  - Dermatology
-  - Respiratory Medicine
-  - Ear Nose and Throat
-  - General Surgery
-  - Rheumatology
-  - Clinical Haematology
-  - Gastroenterology
-  - Endocrinology and Diabe
-  - Clinical Physiology
-  - Renal Medicine
-  - Adult Mental Illness
-  - Geriatric Medicine
-  - Orthodontics
-  - Cardiothoracic Surgery
-  - Obstetrics
-  - Midwifery
-  
-Can we reduce/refine this list?
+- Adult and child appointments 
+- Both high and low volume specialities 
+- First and Follow-up appointments 
+- Appointments classified as 'Attendances' and 'Procedures' 
+- Appointments that involved imaging (incl. CT, MRI, X-ray and USS)
+
+**Outpatient appointments not suitable include:** 
+
+- Attendances that required multiple professionals from more than one specialty 
 
 
 # Community care
@@ -2124,21 +2992,22 @@ Referrals will be organised by reason for referral and therefore care type to id
 
 ```{r ShropCom referrals table}
 create_dt(
-  ShropCom_refs_1819 %>% 
-    group_by(reason_for_referral_to_community_care_description_short) %>% 
-    summarise(referrals = n(),
-              individuals = n_distinct(patient_id),
-              ref_per_person = round(n()/n_distinct(patient_id),1),
-              ratio = round(n_distinct(patient_id)/n(),3)) %>% 
-    arrange(desc(referrals)) %>% 
-    rename(reason_for_referral = reason_for_referral_to_community_care_description_short) %>% 
-    filter(reason_for_referral != 'NULL') %>% 
-    head(10)
+ShropCom_refs_1620 %>%
+  filter(substr(referralreqrecdate,1,4) == "2019") %>% 
+  group_by(reason_for_referral_to_community_care_description_short) %>% 
+  summarise(Referrals = n(),
+            Individuals = n_distinct(patient_id),
+            Ref_per_person = round(n()/n_distinct(patient_id),1),
+            Ratio = round(n_distinct(patient_id)/n(),3)) %>% 
+  arrange(desc(Referrals)) %>% 
+  rename(Reason_referral = reason_for_referral_to_community_care_description_short) %>% 
+  filter(Reason_referral != 'NULL') %>% 
+  head(10)
 )
 ```
 
 
-**Community care contacts pathways for Cavell Centre patients, 2019. ** 
+**Community care contacts pathways for Shrewsbury Health and Well-being Hub patients, 2019. ** 
 
 Contacts classified by the following variables:
 
@@ -2163,12 +3032,12 @@ Contact activity codes are grouped as follows:
 ```{r}
 create_dt(
     tribble(
-    ~code, ~activity_type_desc, ~activity_group,
+    ~Code, ~Activity_type, ~Activity_group,
     "01", "Administering Tests", "Assessment/Tests",
     "02", "Assessment", "Assessment/Tests",
-    "03", "CLINICAL INTERVENTION", "Clinical Intervention",
+    "03", "Clinical Intervention", "Clinical Intervention",
     "04", "Counselling, Advice, Support", "Other",
-    "05", "PATIENT  Specific Health Promotion", "Other",
+    "05", "Patient Specific Health Promotion", "Other",
     "06", "Multidisciplinary Team Review", "Other",
     "07", "Supporting Another Clinician", "Other",
     "08", "Health Visitor  New Birth Visit", "Health visitor",
@@ -2176,23 +3045,34 @@ create_dt(
     "10", "Health Visitor Health Review (1 year)", "Health visitor",
     "11", "Health Visitor  Health Review (2-2.5 years)", "Health visitor",
     "12", "Health Visitor Formal handover to School Nursing Service (4-5 years)", "Health visitor",
-    "97", "Other (not listed)", "Other",
-    "98", "Other (Retired 01 September 2015)", "Other"
+    "97", "Other (not listed)", "Other"
     )
 )
 ```
 
-Source: <https://datadictionary.nhs.uk/data_elements/community_care_activity_type.html> 
+**Source**: <https://datadictionary.nhs.uk/data_elements/community_care_activity_type.html> 
+
+
+**Contacts suitable for collocation include:** 
+
+- Care contacts in adults and children
+- Contacts delivered face-to-face and remotely
+- Contact functions including "Assessment/Tests", "Clinical intervention", "Health visitor", "Other" and "Unknown"
+- All reason for referral codes (Wound care, mobility issues etc) were deemed suitable
+- Contacts occurring in Primary care, Secondary care and the Community
+
+**Community contacts excluded are:**
+
+- Contacts occurring in Education or childcare settings, Polyclinics or "Other" settings.
+
+Contacts occurring in domiciliary settings were included in the model but identified as not requiring a clinical room. 
+
 
 # Diagnositic
 
-SUS data will be used to identify inpatient and outpatient episodes involving diagnostic activity by filtering on procedure codes and/or HRG payment codes.
-
-## DM01 Monthly Diagnostic activity data return
-
 Data available at: <https://www.england.nhs.uk/statistics/statistical-work-areas/diagnostics-waiting-times-and-activity/monthly-diagnostics-waiting-times-and-activity/monthly-diagnostics-data-2021-22/>
 
-Data is published at CCG level so a Cavell Centre derived figure was calculated by assuming similar diagnostic activity between Cavell patients and the wider Shropshire CCG population.
+Data is published at CCG level so a Shrewsbury Health and Well-being Hub derived figure was calculated by assuming similar diagnostic activity between Shrewsbury Health and Well-being Hub patients and the wider Shropshire CCG population.
 
 ```{r}
 dmo01_union_cavell %>% 
@@ -2211,25 +3091,52 @@ dmo01_union_cavell %>%
   theme(strip.text = element_text(face = "bold"),
         legend.position = "none") +
   scale_color_SU() +
-  labs(title = "Diagnostic activity in Cavell Centre patients by test and provider organisation",
-       subtitle = "Cavell Centre activity derived as 12.8% of Shropshire CCG activity",
+  labs(title = "Diagnostic activity in Shrewsbury Health and Well-being Hub patients by test and provider organisation",
+       subtitle = "Shrewsbury Health and Well-being Hub activity derived as 12.8% of Shropshire CCG activity",
        x = "Date", 
        y = "Activity (count per month)",
        colour = "")
 
 ```
 
+```{r}
+create_dt(
+  # Annual activity fields - table 
+dmo01_union_cavell %>% 
+  filter(diagnostic_tests != "Total") %>% 
+  group_by(date, provider_org_name, diagnostic_tests) %>% 
+  summarise(activity = round(sum(cavell_activity),0)) %>% 
+  ungroup() %>% 
+  group_by(substr(date, 1, 4), diagnostic_tests) %>% 
+  summarise(annual_activity = sum(activity)) %>% 
+  rename(year = 1) %>% 
+  pivot_wider(id_cols = diagnostic_tests, 
+              names_from = year, 
+              values_from = annual_activity) %>% 
+  clean_names() %>% 
+  arrange(desc(x2020))
+)
+```
 
+**Diagnostic activity inclusion**
 
-# Appointments/rehab/therapies
+Currently assuming that the imaging capabilities for the centre will include CT and MRI, while awaiting confirmation. As such, all diagnostic activity is included but can be excluded based on the following functions: 
 
-SUS data will be used to identify inpatient and outpatient episodes involving therapy/rehab activity by filtering on speciality and procedure codes.
+- CT
+- MRI
+- X-ray
+- USS
+- ECG
+- Echocardiography
+- Flexi-sigmoidoscopy
+- Other
+
 
 # Mental health 
 
 ## MHSDS care contacts 
 
-**Mental health care contact pathways for Cavell Centre patients, 2019.** 
+**Mental health care contact pathways for Shrewsbury Health and Well-being Hub patients, 2019.** 
 
 Contacts classified by the following variables:
 
@@ -2258,14 +3165,120 @@ sankeyNetwork(Links = mhsds_contact_links,
  - Nursey facility
  - Prison setting
  - Immigration facilities
+ 
+
+**Mental health contacts not suitable for collocation include:** 
+
+- Inpatient episodes
+- Referrals to the Forensic Mental Health Service and the Prison Psychiatric Inreach Service
+
 
 ## IAPT care contacts
 
-...
+```{r}
+# Monthly IAPT 
+iapt %>% 
+  select(appointment, appointment_id) %>% 
+  group_by(substr(appointment,1,7)) %>%
+  summarise(appt_count = n_distinct(appointment_id)) %>% 
+  rename(date = 1) %>% 
+  mutate(date = as.Date(paste0(date,"-01"))) %>% 
+  
+  ggplot(aes(x = date, y = appt_count)) +
+  geom_smooth(method = 'loess', span = 0.2, colour = "#f9bf07") +
+  labs(x = "Date", y = "Appointment count", 
+       title = "Monthly IAPT appointments for Shrewsbury Health and Well-being Hub GP patients, 2016-20.")
+```
+
+Monthly IAPT appointments in Shrewsbury Health and Well-being Hub GP were increasing sharply during 2019 but were heavily affected by the COVID-19 pandemic. Rates returned to pre-pandemic levels by the end of 2020.
+
+**All IAPT therapy types and patient groups considered suitable for collocation**
+
 
 # Midwifery and antenatal care 
 
-Midwifery data will be accessed using local data 
+```{r}
+# Monthly count
+birth_episodes %>%
+  filter(admission_date < "2021-01-01") %>% 
+  group_by(substr(episode_start_date,1,7))%>%
+  summarise(birth_episodes = n_distinct(apce_ident)) %>% 
+  rename(month = 1) %>%
+  mutate(month = paste0(month,"-01")) %>% 
+  mutate(month = as.Date(month)) %>% 
+  
+  ggplot(aes(x = month, y = birth_episodes)) +
+  #geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", span = 0.2, colour = "#f9bf07") + 
+  labs(x = "Month", y = "Birth episodes",
+       title = "Monthly births in Shrewsbury Health and Well-being Hub patients, 2016-19")
+```
+
+Using NHS guidance for standard antenatal care we can deduce that the average pregnancy will include approximately 8 primary care appointments with either a GP or a midwife, as well as 3 antenatal scans. As such we can conclude the following annual antenatal activity taking place in primary care:
+
+```{r}
+create_dt(
+# Annual counts
+birth_episodes %>% 
+  filter(admission_date < "2021-01-01") %>% 
+  group_by(substr(episode_start_date,1,4)) %>%
+  summarise(birth_episodes = n_distinct(apce_ident)) %>% 
+  rename(year = 1) %>% 
+  mutate(antenatal_apps = birth_episodes * 8, # Approx. 8 antenatal appointments per pregnancy 
+         antenatel_scans = birth_episodes * 3 # Approx 3 antenatal scans per pregnancy
+         )
+  )
+```
+
+
+**All considered suitable for collocation.**
+
+
+# Combined activity baseline 
+
+```{r}
+phase_2_input %>% 
+  pivot_longer(cols = -month) %>%
+  mutate(activity_group = 
+           case_when(
+             str_detect(name, "GP") ~ "Primary care", 
+             str_detect(name, "diag") ~ "Diagnostics",
+             str_detect(name, "antenat") ~ "Antenatal",
+             str_detect(name, "opa") ~ "OPA",
+             str_detect(name, "shropcom_contacts") ~ "Community care",
+             str_detect(name, "shropcom_domiciliary") ~ "Community care - Domiciliary",
+             str_detect(name, "mh") ~ "Mental health",
+             str_detect(name, "iapt") ~ "IAPT"
+             )) %>% 
+  mutate(activity_group = factor(activity_group, levels = c(
+   "IAPT",
+   "Antenatal",
+   "Diagnostics",
+   "Community care - Domiciliary",
+   "Community care",
+   "Mental health",
+   "OPA",
+   "Primary care"))) %>% 
+  group_by(month, activity_group) %>% 
+  summarise(contacts = sum(value, na.rm = TRUE)) %>% 
+  
+  ggplot(aes(x = month, y = contacts, fill = activity_group)) +
+  geom_col(position = "stack", width = 22) +
+  #scale_fill_SU(palette = "mixed") +
+  scale_fill_brewer(palette = "Paired") +
+  #scale_fill_manual(values = c("orange","charcoal","slate","blue","red", "yellow", "grey")) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(x = "Month",
+       y = "Monthly Contacts",
+       fill = "Contact activity",
+       title = "Monthly patient activity by contact type, 2016-2021",
+       subtitle = "Shrewsbury Health and Wellbeing Hub patients", 
+       caption = "Note: Primary care consultation data not available before 2018")
+```
+
+
+
+
 
 # Phase 2 direction
 
@@ -2281,7 +3294,7 @@ The results of our clinical modelling will inform our calculations regarding req
 
 ![](Phase_2_model_diagram.png)
 
-Our model will take the current GP population of the 8 Cavell Centre practices and apply various assumed changes to present the modelled demand estimate for the Cavell Centre; this is be mostly impacted by our co-location estimates but will also consider population demographic changes, expected service reconfigurations and increasing use of virtual/remote care. 
+Our model will take the current GP population of the 8 Shrewsbury Health and Well-being Hub practices and apply various assumed changes to present the modelled demand estimate for the Shrewsbury Health and Well-being Hub; this is be mostly impacted by our co-location estimates but will also consider population demographic changes, expected service reconfigurations and increasing use of virtual/remote care. 
 
 To apply our assumptions, we need to identify activity attributed to specific patient groups and predict how this activity will change. We plan to present time-series data to illustrate historical changes in such activity and collaboratively generate a percentage change estimate for each strand of activity.
 
@@ -2312,5 +3325,5 @@ phase_2_dummy %>%
        y = "Activity (annual contacts)",
        fill = "",
        title = "Phase 2 dummy data - example waterfall chart output",
-       subtitle = "Modelled changes to baseline Cavell Centre patient population activity")
+       subtitle = "Modelled changes to baseline Shrewsbury Health and Well-being Hub patient population activity")
 ```

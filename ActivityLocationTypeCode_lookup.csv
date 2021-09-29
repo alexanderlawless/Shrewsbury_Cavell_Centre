@@ -1,0 +1,49 @@
+ActivityLocationTypeCodeID,ActivityLocationTypeCodeCode,ActivityLocationTypeCodeDescription,ActivityLocationTypeCodeDescriptionShort,ActivityLocationTypeGroup
+-2,NULL,NULL,NULL,Unknown
+-1,NK,Not Known,Not Known,Unknown
+1,A01,Patient's home,Patient's home,Domiciliary 
+2,A02,Carer's home,Carer's home,Domiciliary 
+3,A03,Patient's workplace,Patient's workplace,Domiciliary 
+4,A04,Other patient related location,Other patient related location,Domiciliary 
+6,B02,Polyclinic,Polyclinic,Polyclinic
+7,C01,General medical practitioner practice,General medical practitioner practice,Primary care
+8,C02,General dental practice,General dental practice,Community
+9,C03,Ophthalmic medical practitioner premises,Ophthalmic medical practitioner premises,Secondary care
+12,D03,Emergency community dental service,Emergency community dental service,Secondary care
+13,E01,Out-patient clinic,Out-patient clinic,Secondary care
+14,E02,Ward,Ward,Secondary care
+15,E03,Day hospital,Day hospital,Secondary care
+16,E04,Emergency care department or minor injuries department,Emergency care department or minor injuries department,Secondary care
+18,F01,Hospice,Hospice,Community
+21,G03,Children's home,Children's home,Community
+22,H01,Day centre,Day centre,Community
+23,J01,Resource centre,Resource centre,Community
+24,K01,Sure start children’s centre,Sure start children’s centre,Education/child care
+25,K02,Child development centre,Child development centre,Education/child care
+26,L01,School,School,Education/child care
+27,L02,Further education college,Further education college,Education/child care
+28,L03,University,University,Education/child care
+29,L04,Nursery premises,Nursery premises,Education/child care
+30,L05,Other childcare premises,Other childcare premises,Education/child care
+31,L06,Training establishments,Training establishments,Education/child care
+32,L99,Other educational premises,Other educational premises,Education/child care
+33,M01,Prison,Prison,Prison/immigration/correctional facility
+34,M02,Probation service premises,Probation service premises,Prison/immigration/correctional facility
+38,N01,Street or other public open space,Street or other public open space,Community
+39,N02,Other publicly accessible area or building,Other publicly accessible area or building,Community
+40,N03,Voluntary or charitable agency premises,Voluntary or charitable agency premises,Community
+41,N04,Dispensing optician premises,Dispensing optician premises,Community
+42,N05,Dispensing pharmacy premises,Dispensing pharmacy premises,Community
+43,X01,Other locations not elsewhere classified,Other locations not elsewhere classified,Other
+44,E99,Other departments,Other departments,Other
+45,B01,Primary care health centre,Primary care health centre,Primary care
+46,D01,Walk in centre,Walk in centre,Secondary care
+47,D02,Out of hours centre,Out of hours centre,Secondary care
+49,G01,Care home without nursing,Care home without nursing,Community
+50,G02,Care home with nursing,Care home with nursing,Community
+51,G04,Integrated care home without nursing and care home with nursing,Integrated care home w/o nursing and ch with,Community
+52,M03,Police station / police custody suite,Police station / police custody suite,Prison/immigration/correctional facility
+53,M04,Young offenders institution,Young Offenders Institution,Prison/immigration/correctional facility
+54,M05,Immigration removal centre,Immigration removal centre,Prison/immigration/correctional facility
+55,M06,Young Offender Institution (15-17),Young Offender Institution (15-17),Prison/immigration/correctional facility
+56,M07,Young Offender Institution (18-21),Young Offender Institution (18-21),Prison/immigration/correctional facility

@@ -1,0 +1,11 @@
+consult_type_group,contact_activity_group,community,domiciliary,education_child_care,other,polyclinic,primary_care,secondary_care
+Face-to-face,Assessment/Tests,676,13271,969,657,485,2819,434
+Face-to-face,Clinical Intervention,636,27177,1560,327,601,2599,235
+Face-to-face,Health visitor,3,105,3,NA,2,13,NA
+Face-to-face,Other,758,2249,278,196,113,1953,93
+Face-to-face,Unknown,84,3062,983,135,190,2168,534
+Other,Assessment/Tests,424,5002,676,3320,654,1495,134
+Other,Clinical Intervention,92,652,31,566,140,668,21
+Other,Health visitor,8,39,2,11,1,9,1
+Other,Other,1236,884,211,1882,282,880,71
+Other,Unknown,162,11635,1557,2786,709,2323,322

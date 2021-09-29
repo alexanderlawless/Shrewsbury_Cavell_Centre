@@ -1,0 +1,58 @@
+child_adult,high_volume_speciality,first_or_fu,attendance_type,imaging,n
+Adult,No,First atttendance,Attendance - Multi professional,No imaging,1
+Adult,No,First atttendance,Attendance - Single professional,No imaging,1259
+Adult,No,First atttendance,Procedure,CT,1279
+Adult,No,First atttendance,Procedure,MRI,1268
+Adult,No,First atttendance,Procedure,No imaging,25223
+Adult,No,First atttendance,Procedure,USS,1058
+Adult,No,First atttendance,Procedure,Xray,3313
+Adult,No,Follow-up,Attendance - Multi professional,No imaging,8
+Adult,No,Follow-up,Attendance - Single professional,No imaging,2323
+Adult,No,Follow-up,Procedure,CT,111
+Adult,No,Follow-up,Procedure,MRI,716
+Adult,No,Follow-up,Procedure,No imaging,39346
+Adult,No,Follow-up,Procedure,USS,368
+Adult,No,Follow-up,Procedure,Xray,942
+Adult,No,NA,Procedure,No imaging,13
+Adult,Yes,First atttendance,Attendance - Multi professional,No imaging,1
+Adult,Yes,First atttendance,Attendance - Single professional,CT,3
+Adult,Yes,First atttendance,Attendance - Single professional,No imaging,88
+Adult,Yes,First atttendance,Procedure,CT,370
+Adult,Yes,First atttendance,Procedure,MRI,369
+Adult,Yes,First atttendance,Procedure,No imaging,15725
+Adult,Yes,First atttendance,Procedure,USS,1028
+Adult,Yes,First atttendance,Procedure,Xray,1464
+Adult,Yes,Follow-up,Attendance - Multi professional,No imaging,2
+Adult,Yes,Follow-up,Attendance - Single professional,No imaging,91
+Adult,Yes,Follow-up,Procedure,CT,20
+Adult,Yes,Follow-up,Procedure,MRI,127
+Adult,Yes,Follow-up,Procedure,No imaging,27827
+Adult,Yes,Follow-up,Procedure,USS,111
+Adult,Yes,Follow-up,Procedure,Xray,295
+Adult,Yes,NA,Procedure,No imaging,4
+Child,No,First atttendance,Attendance - Multi professional,No imaging,1
+Child,No,First atttendance,Attendance - Single professional,No imaging,16
+Child,No,First atttendance,Procedure,MRI,25
+Child,No,First atttendance,Procedure,No imaging,1800
+Child,No,First atttendance,Procedure,USS,77
+Child,No,First atttendance,Procedure,Xray,164
+Child,No,Follow-up,Attendance - Multi professional,No imaging,15
+Child,No,Follow-up,Attendance - Single professional,No imaging,32
+Child,No,Follow-up,Procedure,CT,4
+Child,No,Follow-up,Procedure,MRI,36
+Child,No,Follow-up,Procedure,No imaging,4495
+Child,No,Follow-up,Procedure,USS,24
+Child,No,Follow-up,Procedure,Xray,73
+Child,No,NA,Procedure,No imaging,8
+Child,Yes,First atttendance,Attendance - Single professional,No imaging,5
+Child,Yes,First atttendance,Procedure,CT,2
+Child,Yes,First atttendance,Procedure,MRI,47
+Child,Yes,First atttendance,Procedure,No imaging,1269
+Child,Yes,First atttendance,Procedure,USS,14
+Child,Yes,First atttendance,Procedure,Xray,14
+Child,Yes,Follow-up,Attendance - Single professional,No imaging,14
+Child,Yes,Follow-up,Procedure,CT,2
+Child,Yes,Follow-up,Procedure,MRI,6
+Child,Yes,Follow-up,Procedure,No imaging,2281
+Child,Yes,Follow-up,Procedure,USS,3
+Child,Yes,Follow-up,Procedure,Xray,2

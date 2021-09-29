@@ -1,0 +1,272 @@
+child_adult,consult_type_group,contact_activity_group,reason_for_ref,care_contacts,prop
+Adult,Face-to-face,Assessment/Tests,Wound care,2437,18.3
+Adult,Face-to-face,Assessment/Tests,Diabetes,1462,10.98
+Adult,Face-to-face,Assessment/Tests,Haematology/phlebotomy,1278,9.6
+Adult,Face-to-face,Assessment/Tests,Foot care/problems,821,6.17
+Adult,Face-to-face,Assessment/Tests,Musculoskeletal problems,801,6.02
+Adult,Face-to-face,Assessment/Tests,Mobility problems,762,5.72
+Adult,Face-to-face,Assessment/Tests,End of life support,681,5.11
+Adult,Face-to-face,Assessment/Tests,Leg ulcer,607,4.56
+Adult,Face-to-face,Assessment/Tests,Other,601,4.51
+Adult,Face-to-face,Assessment/Tests,Bladder care,564,4.24
+Adult,Face-to-face,Assessment/Tests,Falls risk,532,4
+Adult,Face-to-face,Assessment/Tests,Continence problems,522,3.92
+Adult,Face-to-face,Assessment/Tests,Pressure ulcer,352,2.64
+Adult,Face-to-face,Assessment/Tests,Blood disorders,335,2.52
+Adult,Face-to-face,Assessment/Tests,Equipment provision,326,2.45
+Adult,Face-to-face,Assessment/Tests,Respiratory conditions,219,1.64
+Adult,Face-to-face,Assessment/Tests,Rehabilitation,192,1.44
+Adult,Face-to-face,Assessment/Tests,Catheter problems,182,1.37
+Adult,Face-to-face,Assessment/Tests,Neurological problems,181,1.36
+Adult,Face-to-face,Assessment/Tests,Accident/trauma,175,1.31
+Adult,Face-to-face,Assessment/Tests,Speech and language problems,145,1.09
+Adult,Face-to-face,Assessment/Tests,Cancer,140,1.05
+Adult,Face-to-face,Clinical Intervention,Wound care,6151,24.54
+Adult,Face-to-face,Clinical Intervention,Diabetes,4154,16.57
+Adult,Face-to-face,Clinical Intervention,Haematology/phlebotomy,3723,14.85
+Adult,Face-to-face,Clinical Intervention,Other,1849,7.38
+Adult,Face-to-face,Clinical Intervention,Leg ulcer,1642,6.55
+Adult,Face-to-face,Clinical Intervention,Bladder care,1182,4.71
+Adult,Face-to-face,Clinical Intervention,Musculoskeletal problems,940,3.75
+Adult,Face-to-face,Clinical Intervention,Blood disorders,864,3.45
+Adult,Face-to-face,Clinical Intervention,Pressure ulcer,810,3.23
+Adult,Face-to-face,Clinical Intervention,Foot care/problems,777,3.1
+Adult,Face-to-face,Clinical Intervention,End of life support,743,2.96
+Adult,Face-to-face,Clinical Intervention,Falls risk,700,2.79
+Adult,Face-to-face,Clinical Intervention,Mobility problems,462,1.84
+Adult,Face-to-face,Clinical Intervention,Catheter problems,418,1.67
+Adult,Face-to-face,Clinical Intervention,Continence problems,398,1.59
+Adult,Face-to-face,Clinical Intervention,Post operative care,257,1.03
+Adult,Face-to-face,Health visitor,Wound care,21,20.39
+Adult,Face-to-face,Health visitor,Diabetes,18,17.48
+Adult,Face-to-face,Health visitor,Haematology/phlebotomy,16,15.53
+Adult,Face-to-face,Health visitor,Bladder care,8,7.77
+Adult,Face-to-face,Health visitor,End of life support,7,6.8
+Adult,Face-to-face,Health visitor,Blood disorders,5,4.85
+Adult,Face-to-face,Health visitor,Foot care/problems,5,4.85
+Adult,Face-to-face,Health visitor,Mobility problems,5,4.85
+Adult,Face-to-face,Health visitor,Other,4,3.88
+Adult,Face-to-face,Health visitor,Continence problems,3,2.91
+Adult,Face-to-face,Health visitor,Neurological problems,3,2.91
+Adult,Face-to-face,Health visitor,Equipment provision,2,1.94
+Adult,Face-to-face,Health visitor,Leg ulcer,2,1.94
+Adult,Face-to-face,Health visitor,Pressure ulcer,2,1.94
+Adult,Face-to-face,Health visitor,Respiratory conditions,2,1.94
+Adult,Face-to-face,Other,Musculoskeletal problems,1415,33.68
+Adult,Face-to-face,Other,Diabetes,528,12.57
+Adult,Face-to-face,Other,Wound care,434,10.33
+Adult,Face-to-face,Other,Other,253,6.02
+Adult,Face-to-face,Other,Mobility problems,228,5.43
+Adult,Face-to-face,Other,Haematology/phlebotomy,226,5.38
+Adult,Face-to-face,Other,Continence problems,204,4.86
+Adult,Face-to-face,Other,Falls risk,161,3.83
+Adult,Face-to-face,Other,Foot care/problems,131,3.12
+Adult,Face-to-face,Other,Accident/trauma,91,2.17
+Adult,Face-to-face,Other,Bladder care,90,2.14
+Adult,Face-to-face,Other,Respiratory conditions,90,2.14
+Adult,Face-to-face,Other,End of life support,85,2.02
+Adult,Face-to-face,Other,Leg ulcer,79,1.88
+Adult,Face-to-face,Other,Equipment provision,72,1.71
+Adult,Face-to-face,Other,Blood disorders,67,1.59
+Adult,Face-to-face,Other,Neurological problems,47,1.12
+Adult,Face-to-face,Unknown,Foot care/problems,853,20.47
+Adult,Face-to-face,Unknown,Wound care,660,15.84
+Adult,Face-to-face,Unknown,Diabetes,561,13.46
+Adult,Face-to-face,Unknown,Musculoskeletal problems,528,12.67
+Adult,Face-to-face,Unknown,Leg ulcer,351,8.42
+Adult,Face-to-face,Unknown,Other,275,6.6
+Adult,Face-to-face,Unknown,Haematology/phlebotomy,180,4.32
+Adult,Face-to-face,Unknown,Bladder care,146,3.5
+Adult,Face-to-face,Unknown,Respiratory conditions,126,3.02
+Adult,Face-to-face,Unknown,End of life support,124,2.98
+Adult,Face-to-face,Unknown,Blood disorders,111,2.66
+Adult,Face-to-face,Unknown,Mobility problems,74,1.78
+Adult,Face-to-face,Unknown,Continence problems,70,1.68
+Adult,Face-to-face,Unknown,Pressure ulcer,66,1.58
+Adult,Face-to-face,Unknown,Equipment provision,42,1.01
+Adult,Other,Assessment/Tests,Wound care,1202,16.4
+Adult,Other,Assessment/Tests,Diabetes,820,11.19
+Adult,Other,Assessment/Tests,Mobility problems,719,9.81
+Adult,Other,Assessment/Tests,Haematology/phlebotomy,477,6.51
+Adult,Other,Assessment/Tests,Other,442,6.03
+Adult,Other,Assessment/Tests,End of life support,376,5.13
+Adult,Other,Assessment/Tests,Respiratory conditions,339,4.62
+Adult,Other,Assessment/Tests,Equipment provision,328,4.47
+Adult,Other,Assessment/Tests,Leg ulcer,310,4.23
+Adult,Other,Assessment/Tests,Bladder care,292,3.98
+Adult,Other,Assessment/Tests,Falls risk,286,3.9
+Adult,Other,Assessment/Tests,Continence problems,263,3.59
+Adult,Other,Assessment/Tests,Musculoskeletal problems,226,3.08
+Adult,Other,Assessment/Tests,Rehabilitation,191,2.61
+Adult,Other,Assessment/Tests,Neurological problems,185,2.52
+Adult,Other,Assessment/Tests,Foot care/problems,172,2.35
+Adult,Other,Assessment/Tests,Blood disorders,170,2.32
+Adult,Other,Assessment/Tests,Catheter problems,154,2.1
+Adult,Other,Assessment/Tests,Pressure ulcer,144,1.96
+Adult,Other,Assessment/Tests,Cancer,120,1.64
+Adult,Other,Assessment/Tests,Accident/trauma,115,1.57
+Adult,Other,Clinical Intervention,Neurological problems,266,21.11
+Adult,Other,Clinical Intervention,Wound care,148,11.75
+Adult,Other,Clinical Intervention,Other,105,8.33
+Adult,Other,Clinical Intervention,Speech and language problems,88,6.98
+Adult,Other,Clinical Intervention,Diabetes,80,6.35
+Adult,Other,Clinical Intervention,Respiratory conditions,78,6.19
+Adult,Other,Clinical Intervention,Haematology/phlebotomy,71,5.63
+Adult,Other,Clinical Intervention,Mobility problems,71,5.63
+Adult,Other,Clinical Intervention,Bladder care,61,4.84
+Adult,Other,Clinical Intervention,End of life support,46,3.65
+Adult,Other,Clinical Intervention,Falls risk,39,3.1
+Adult,Other,Clinical Intervention,Equipment provision,28,2.22
+Adult,Other,Clinical Intervention,Catheter problems,26,2.06
+Adult,Other,Clinical Intervention,Accident/trauma,25,1.98
+Adult,Other,Clinical Intervention,Leg ulcer,25,1.98
+Adult,Other,Clinical Intervention,Blood disorders,24,1.9
+Adult,Other,Clinical Intervention,Continence problems,24,1.9
+Adult,Other,Clinical Intervention,Head injury,15,1.19
+Adult,Other,Clinical Intervention,Rehabilitation,14,1.11
+Adult,Other,Clinical Intervention,Foot care/problems,13,1.03
+Adult,Other,Clinical Intervention,Musculoskeletal problems,13,1.03
+Adult,Other,Health visitor,Wound care,14,28.57
+Adult,Other,Health visitor,Diabetes,6,12.24
+Adult,Other,Health visitor,Haematology/phlebotomy,6,12.24
+Adult,Other,Health visitor,End of life support,5,10.2
+Adult,Other,Health visitor,Bladder care,4,8.16
+Adult,Other,Health visitor,Blood disorders,3,6.12
+Adult,Other,Health visitor,Neurological problems,3,6.12
+Adult,Other,Health visitor,Accident/trauma,1,2.04
+Adult,Other,Health visitor,Cancer,1,2.04
+Adult,Other,Health visitor,Continence problems,1,2.04
+Adult,Other,Health visitor,Falls risk,1,2.04
+Adult,Other,Health visitor,Foot care/problems,1,2.04
+Adult,Other,Health visitor,Mobility problems,1,2.04
+Adult,Other,Health visitor,Problems with activities of daily living,1,2.04
+Adult,Other,Health visitor,Respiratory conditions,1,2.04
+Adult,Other,Other,Mobility problems,353,16.53
+Adult,Other,Other,Wound care,310,14.51
+Adult,Other,Other,Equipment provision,168,7.87
+Adult,Other,Other,Respiratory conditions,156,7.3
+Adult,Other,Other,Diabetes,143,6.69
+Adult,Other,Other,End of life support,113,5.29
+Adult,Other,Other,Other,112,5.24
+Adult,Other,Other,Falls risk,99,4.63
+Adult,Other,Other,Haematology/phlebotomy,87,4.07
+Adult,Other,Other,Rehabilitation,86,4.03
+Adult,Other,Other,Bladder care,70,3.28
+Adult,Other,Other,Speech and language problems,61,2.86
+Adult,Other,Other,Neurological problems,55,2.57
+Adult,Other,Other,Accident/trauma,53,2.48
+Adult,Other,Other,Leg ulcer,51,2.39
+Adult,Other,Other,Cancer,45,2.11
+Adult,Other,Other,Blood disorders,41,1.92
+Adult,Other,Other,Musculoskeletal problems,41,1.92
+Adult,Other,Other,Continence problems,37,1.73
+Adult,Other,Other,Problems with activities of daily living,29,1.36
+Adult,Other,Other,Catheter problems,26,1.22
+Adult,Other,Unknown,Wound care,2881,21.46
+Adult,Other,Unknown,Diabetes,2051,15.28
+Adult,Other,Unknown,Haematology/phlebotomy,1241,9.24
+Adult,Other,Unknown,Other,1083,8.07
+Adult,Other,Unknown,Leg ulcer,779,5.8
+Adult,Other,Unknown,Musculoskeletal problems,717,5.34
+Adult,Other,Unknown,Bladder care,700,5.21
+Adult,Other,Unknown,End of life support,624,4.65
+Adult,Other,Unknown,Foot care/problems,502,3.74
+Adult,Other,Unknown,Respiratory conditions,412,3.07
+Adult,Other,Unknown,Continence problems,409,3.05
+Adult,Other,Unknown,Mobility problems,386,2.88
+Adult,Other,Unknown,Blood disorders,380,2.83
+Adult,Other,Unknown,Falls risk,369,2.75
+Adult,Other,Unknown,Pressure ulcer,366,2.73
+Adult,Other,Unknown,Catheter problems,329,2.45
+Adult,Other,Unknown,Equipment provision,196,1.46
+Child,Face-to-face,Assessment/Tests,Speech and language problems,132,30.7
+Child,Face-to-face,Assessment/Tests,Hearing problems/loss,73,16.98
+Child,Face-to-face,Assessment/Tests,Foot care/problems,57,13.26
+Child,Face-to-face,Assessment/Tests,Diabetes,47,10.93
+Child,Face-to-face,Assessment/Tests,Family support,30,6.98
+Child,Face-to-face,Assessment/Tests,Psychological conditions,21,4.88
+Child,Face-to-face,Assessment/Tests,Looked after children,17,3.95
+Child,Face-to-face,Assessment/Tests,Feeding/swallowing problems,16,3.72
+Child,Face-to-face,Assessment/Tests,Metabolic/endocrine disorders,10,2.33
+Child,Face-to-face,Assessment/Tests,Cancer,8,1.86
+Child,Face-to-face,Assessment/Tests,Musculoskeletal problems,7,1.63
+Child,Face-to-face,Assessment/Tests,Other,7,1.63
+Child,Face-to-face,Assessment/Tests,Ophthalmic problems,5,1.16
+Child,Face-to-face,Clinical Intervention,Foot care/problems,57,26.15
+Child,Face-to-face,Clinical Intervention,Speech and language problems,55,25.23
+Child,Face-to-face,Clinical Intervention,Family support,23,10.55
+Child,Face-to-face,Clinical Intervention,Metabolic/endocrine disorders,17,7.8
+Child,Face-to-face,Clinical Intervention,Musculoskeletal problems,15,6.88
+Child,Face-to-face,Clinical Intervention,Ophthalmic problems,15,6.88
+Child,Face-to-face,Clinical Intervention,Feeding/swallowing problems,11,5.05
+Child,Face-to-face,Clinical Intervention,Psychological conditions,8,3.67
+Child,Face-to-face,Clinical Intervention,Cancer,6,2.75
+Child,Face-to-face,Clinical Intervention,Hearing problems/loss,5,2.29
+Child,Face-to-face,Clinical Intervention,Bowel problems,3,1.38
+Child,Face-to-face,Clinical Intervention,Diabetes,3,1.38
+Child,Face-to-face,Health visitor,Metabolic/endocrine disorders,1,50
+Child,Face-to-face,Health visitor,Psychological conditions,1,50
+Child,Face-to-face,Other,Psychological conditions,54,30.68
+Child,Face-to-face,Other,Diabetes,32,18.18
+Child,Face-to-face,Other,Foot care/problems,18,10.23
+Child,Face-to-face,Other,Family support,14,7.95
+Child,Face-to-face,Other,Speech and language problems,13,7.39
+Child,Face-to-face,Other,Musculoskeletal problems,10,5.68
+Child,Face-to-face,Other,Metabolic/endocrine disorders,8,4.55
+Child,Face-to-face,Other,Cancer,7,3.98
+Child,Face-to-face,Other,Feeding/swallowing problems,5,2.84
+Child,Face-to-face,Other,Chronic allergy/immunological problem,4,2.27
+Child,Face-to-face,Other,Hearing problems/loss,4,2.27
+Child,Face-to-face,Other,Looked after children,2,1.14
+Child,Face-to-face,Other,Ophthalmic problems,2,1.14
+Child,Face-to-face,Other,Wound care,2,1.14
+Child,Face-to-face,Other,Other,1,0.57
+Child,Face-to-face,Unknown,Speech and language problems,323,53.83
+Child,Face-to-face,Unknown,Hearing problems/loss,194,32.33
+Child,Face-to-face,Unknown,Foot care/problems,38,6.33
+Child,Face-to-face,Unknown,Feeding/swallowing problems,20,3.33
+Child,Face-to-face,Unknown,Other,17,2.83
+Child,Face-to-face,Unknown,Diabetes,8,1.33
+Child,Other,Assessment/Tests,Speech and language problems,155,44.03
+Child,Other,Assessment/Tests,Diabetes,70,19.89
+Child,Other,Assessment/Tests,Metabolic/endocrine disorders,22,6.25
+Child,Other,Assessment/Tests,Musculoskeletal problems,18,5.11
+Child,Other,Assessment/Tests,Ophthalmic problems,17,4.83
+Child,Other,Assessment/Tests,Psychological conditions,16,4.55
+Child,Other,Assessment/Tests,Feeding/swallowing problems,14,3.98
+Child,Other,Assessment/Tests,Other,14,3.98
+Child,Other,Assessment/Tests,Foot care/problems,9,2.56
+Child,Other,Assessment/Tests,Cancer,6,1.7
+Child,Other,Assessment/Tests,Looked after children,6,1.7
+Child,Other,Assessment/Tests,Hearing problems/loss,5,1.42
+Child,Other,Clinical Intervention,Diabetes,25,62.5
+Child,Other,Clinical Intervention,Speech and language problems,5,12.5
+Child,Other,Clinical Intervention,Metabolic/endocrine disorders,3,7.5
+Child,Other,Clinical Intervention,Musculoskeletal problems,3,7.5
+Child,Other,Clinical Intervention,Psychological conditions,2,5
+Child,Other,Clinical Intervention,Feeding/swallowing problems,1,2.5
+Child,Other,Clinical Intervention,Foot care/problems,1,2.5
+Child,Other,Other,Metabolic/endocrine disorders,58,21.56
+Child,Other,Other,Ophthalmic problems,47,17.47
+Child,Other,Other,Musculoskeletal problems,40,14.87
+Child,Other,Other,Diabetes,21,7.81
+Child,Other,Other,Cancer,20,7.43
+Child,Other,Other,Speech and language problems,20,7.43
+Child,Other,Other,Psychological conditions,17,6.32
+Child,Other,Other,Feeding/swallowing problems,11,4.09
+Child,Other,Other,Chronic allergy/immunological problem,9,3.35
+Child,Other,Other,Looked after children,8,2.97
+Child,Other,Other,Other,7,2.6
+Child,Other,Other,Bowel problems,4,1.49
+Child,Other,Other,Wound care,4,1.49
+Child,Other,Other,Cerebral palsy,3,1.12
+Child,Other,Unknown,Speech and language problems,504,72.94
+Child,Other,Unknown,Foot care/problems,43,6.22
+Child,Other,Unknown,Psychological conditions,33,4.78
+Child,Other,Unknown,Feeding/swallowing problems,24,3.47
+Child,Other,Unknown,Hearing problems/loss,23,3.33
+Child,Other,Unknown,Diabetes,16,2.32
+Child,Other,Unknown,Other,16,2.32
+Child,Other,Unknown,Musculoskeletal problems,12,1.74
+Child,Other,Unknown,Looked after children,11,1.59
+Child,Other,Unknown,Developmental problems,9,1.3
