@@ -2423,7 +2423,16 @@ phase_2_input <-
   left_join(opa_phase_2_input, by = c("month")) %>% 
   pivot_longer(cols = -month) %>% 
   mutate(value = replace_na(value, 0)) %>% 
-  pivot_wider(id_cols = month)
+  pivot_wider(id_cols = month) 
+
+phase_2_input <-
+  phase_2_input %>% 
+  mutate(total_activity =  
+           rowSums(phase_2_input[,-1])
+           #mutate_if(is.numeric, sum, na.rm=TRUE)
+           ) %>% 
+  mutate(ASC_place_holder = total_activity * 0.05) %>% # 5% of total activity allocated to ASC
+  select(-total_activity)
 
 # Daily 
 phase_2_input_daily <-
@@ -3237,6 +3246,7 @@ birth_episodes %>%
 # Combined activity baseline 
 
 ```{r}
+# Monthly
 phase_2_input %>% 
   pivot_longer(cols = -month) %>%
   mutate(activity_group = 
@@ -3248,15 +3258,17 @@ phase_2_input %>%
              str_detect(name, "shropcom_contacts") ~ "Community care",
              str_detect(name, "shropcom_domiciliary") ~ "Community care - Domiciliary",
              str_detect(name, "mh") ~ "Mental health",
-             str_detect(name, "iapt") ~ "IAPT"
+             str_detect(name, "iapt") ~ "IAPT",
+             str_detect(name, "ASC") ~ "ASC - place holder (5%)"
              )) %>% 
   mutate(activity_group = factor(activity_group, levels = c(
    "IAPT",
    "Antenatal",
    "Diagnostics",
-   "Community care - Domiciliary",
    "Community care",
    "Mental health",
+   "ASC - place holder (5%)",
+   "Community care - Domiciliary",
    "OPA",
    "Primary care"))) %>% 
   group_by(month, activity_group) %>% 
@@ -3264,9 +3276,7 @@ phase_2_input %>%
   
   ggplot(aes(x = month, y = contacts, fill = activity_group)) +
   geom_col(position = "stack", width = 22) +
-  #scale_fill_SU(palette = "mixed") +
   scale_fill_brewer(palette = "Paired") +
-  #scale_fill_manual(values = c("orange","charcoal","slate","blue","red", "yellow", "grey")) +
   scale_y_continuous(labels = scales::comma) +
   labs(x = "Month",
        y = "Monthly Contacts",
@@ -3277,6 +3287,13 @@ phase_2_input %>%
 ```
 
 
+**Phase 1 - Tabular output:**
+
+```{r}
+create_dt(
+  phase_2_input
+)
+```
 
 
 
