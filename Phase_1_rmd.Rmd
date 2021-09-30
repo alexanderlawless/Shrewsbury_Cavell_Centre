@@ -2431,7 +2431,7 @@ phase_2_input <-
            rowSums(phase_2_input[,-1])
            #mutate_if(is.numeric, sum, na.rm=TRUE)
            ) %>% 
-  mutate(ASC_place_holder = total_activity * 0.05) %>% # 5% of total activity allocated to ASC
+  mutate(ASC_place_holder = total_activity * 0.1) %>% # 10% of total activity allocated to ASC
   select(-total_activity)
 
 # Daily 
@@ -2460,9 +2460,13 @@ phase_2_input_daily <-
 # Background/Project Details
 ## Combined patient population health service needs
 The first strand of our analysis will be to collate and summarise GP surgery patient lists for the given 8 practices. This will be achieved using publicly available data from NHS Digital, specifically data on the distribution of GP patients by gender, sex and LSOA along with the number of patients each practice has with selected health conditions specified by Quality Outcome Framework (QOF) returns.
-Without access to individual level GP data, we will not be able to account for multi-morbidity, that is, we will present the combined volume of patients across the 8 practices who are know to have heart disease for example, alongside the number of COPD, but not the number with both conditions. 
+
+Without access to individual level GP data, we will not be able to account for multi-morbidity, that is, we will present the combined volume of patients across the 8 practices who are known to have heart disease for example, alongside the number of COPD, but not the number with both conditions. 
+
 We will also estimate the volume and nature of referrals to community care for this combined patient population. A preliminary data query, using our Community Services Data Set would suggest our combined population were responsible for approximately 130,000 referrals to community services during 2019, primarily for footcare, MSK problems and the ‘Healthy Child Pathway’. Discussions will be required to agree the most appropriate method of estimating ‘existing’ demand given changes to referrals and care seeking behaviour throughout the pandemic. 
+
 This exercise will provide high level estimates of demographics and clinical need for the new patient population and will serve as a baseline to feed into our model when predicting wider service engagement and demand.
+
 To complete this analysis, we will also identify activity across other aspects of the health and care system used by patients at the 8 practices according to the Shrewsbury Health and Well-being Hub service model. This will include but is not necessarily restricted to:
 
  *	Outpatient appointments at RSH, PRH and other acute providers
@@ -2976,19 +2980,30 @@ An outpatient appointment was defined as an: **attendance** having a HRG code of
   - Y973: Radiology with post contrast
   - U011: Computed tomography of whole body
   - **Or no imaging**
-  
 
-**Appointments suitable for collocation include:** 
 
+<div class="warning" style='padding:0.1em; background-color:#f9bf07; color:#2c2825'>
+<span>
+<p style='margin-top:1em;'>
+<b>Appointments suitable for collocation include:</b></p>
+
+<p style='margin-left:1em;'>
 - Adult and child appointments 
 - Both high and low volume specialities 
 - First and Follow-up appointments 
 - Appointments classified as 'Attendances' and 'Procedures' 
 - Appointments that involved imaging (incl. CT, MRI, X-ray and USS)
 
-**Outpatient appointments not suitable include:** 
+<p style='margin-top:1em;'>
+<b>Outpatient appointments not suitable include:</b></p>
 
+<p style='margin-left:1em;'>
 - Attendances that required multiple professionals from more than one specialty 
+
+</p>
+</p></span>
+</div>
+
 
 
 # Community care
@@ -3061,21 +3076,29 @@ create_dt(
 
 **Source**: <https://datadictionary.nhs.uk/data_elements/community_care_activity_type.html> 
 
+<div class="warning" style='padding:0.1em; background-color:#f9bf07; color:#2c2825'>
+<span>
+<p style='margin-top:1em;'>
+<b>Contacts suitable for collocation include:</b></p>
 
-**Contacts suitable for collocation include:** 
-
+<p style='margin-left:1em;'>
 - Care contacts in adults and children
 - Contacts delivered face-to-face and remotely
 - Contact functions including "Assessment/Tests", "Clinical intervention", "Health visitor", "Other" and "Unknown"
 - All reason for referral codes (Wound care, mobility issues etc) were deemed suitable
 - Contacts occurring in Primary care, Secondary care and the Community
 
-**Community contacts excluded are:**
+<p style='margin-top:1em;'>
+<b>Community contacts excluded are:</b></p>
 
+<p style='margin-left:1em;'>
 - Contacts occurring in Education or childcare settings, Polyclinics or "Other" settings.
 
 Contacts occurring in domiciliary settings were included in the model but identified as not requiring a clinical room. 
 
+</p>
+</p></span>
+</div>
 
 # Diagnositic
 
@@ -3127,8 +3150,13 @@ dmo01_union_cavell %>%
 )
 ```
 
-**Diagnostic activity inclusion**
 
+<div class="warning" style='padding:0.1em; background-color:#f9bf07; color:#2c2825'>
+<span>
+<p style='margin-top:1em;'>
+<b>Diagnostic activity inclusion:</b></p>
+
+<p style='margin-left:1em;'>
 Currently assuming that the imaging capabilities for the centre will include CT and MRI, while awaiting confirmation. As such, all diagnostic activity is included but can be excluded based on the following functions: 
 
 - CT
@@ -3139,6 +3167,11 @@ Currently assuming that the imaging capabilities for the centre will include CT 
 - Echocardiography
 - Flexi-sigmoidoscopy
 - Other
+
+</p>
+</p></span>
+</div>
+
 
 
 # Mental health 
@@ -3176,10 +3209,18 @@ sankeyNetwork(Links = mhsds_contact_links,
  - Immigration facilities
  
 
-**Mental health contacts not suitable for collocation include:** 
+<div class="warning" style='padding:0.1em; background-color:#f9bf07; color:#2c2825'>
+<span>
+<p style='margin-top:1em;'>
+<b>Mental health contacts not suitable for collocation include:</b></p>
 
+<p style='margin-left:1em;'>
 - Inpatient episodes
 - Referrals to the Forensic Mental Health Service and the Prison Psychiatric Inreach Service
+
+</p>
+</p></span>
+</div>
 
 
 ## IAPT care contacts
@@ -3201,8 +3242,14 @@ iapt %>%
 
 Monthly IAPT appointments in Shrewsbury Health and Well-being Hub GP were increasing sharply during 2019 but were heavily affected by the COVID-19 pandemic. Rates returned to pre-pandemic levels by the end of 2020.
 
-**All IAPT therapy types and patient groups considered suitable for collocation**
 
+<div class="warning" style='padding:0.1em; background-color:#f9bf07; color:#2c2825'>
+<span>
+<p style='margin-top:1em;'>
+<b>All IAPT therapy types and patient groups considered suitable for collocation</b></p>
+</p>
+</p></span>
+</div>
 
 # Midwifery and antenatal care 
 
@@ -3240,8 +3287,13 @@ birth_episodes %>%
 ```
 
 
-**All considered suitable for collocation.**
-
+<div class="warning" style='padding:0.1em; background-color:#f9bf07; color:#2c2825'>
+<span>
+<p style='margin-top:1em;'>
+<b>All ante-natal contacts considered suitable for collocation.</b></p>
+</p>
+</p></span>
+</div>
 
 # Combined activity baseline 
 
@@ -3259,7 +3311,7 @@ phase_2_input %>%
              str_detect(name, "shropcom_domiciliary") ~ "Community care - Domiciliary",
              str_detect(name, "mh") ~ "Mental health",
              str_detect(name, "iapt") ~ "IAPT",
-             str_detect(name, "ASC") ~ "ASC - place holder (5%)"
+             str_detect(name, "ASC") ~ "Shrop Council - place holder (10%)"
              )) %>% 
   mutate(activity_group = factor(activity_group, levels = c(
    "IAPT",
@@ -3267,7 +3319,7 @@ phase_2_input %>%
    "Diagnostics",
    "Community care",
    "Mental health",
-   "ASC - place holder (5%)",
+   "Shrop Council - place holder (10%)",
    "Community care - Domiciliary",
    "OPA",
    "Primary care"))) %>% 
